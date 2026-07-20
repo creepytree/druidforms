@@ -1,0 +1,1460 @@
+{
+  "version": "1.0.6",
+  "generated": "2026-08-02",
+  "components": [
+    {
+      "tag": "druid-accent-picker",
+      "since": "1.0.0",
+      "summary": "palette icon button opening the accent popover.",
+      "attributes": [],
+      "slots": [],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--df-dur-fast"
+        },
+        {
+          "var": "--df-ease"
+        },
+        {
+          "var": "--df-dur"
+        },
+        {
+          "var": "--focus-ring"
+        },
+        {
+          "var": "--bg-hover"
+        },
+        {
+          "var": "--text"
+        },
+        {
+          "var": "--bg-raised"
+        },
+        {
+          "var": "--shadow"
+        }
+      ],
+      "example": "<druid-accent-picker></druid-accent-picker>",
+      "gotchas": [
+        "No attributes; place in the navbar actions slot. Drives druids.applyAccent / rainbow."
+      ]
+    },
+    {
+      "tag": "druid-button",
+      "since": "1.0.0",
+      "summary": "the .small-btn of the classic apps as a component.",
+      "attributes": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": [
+            "default",
+            "primary",
+            "danger",
+            "soft",
+            "soft-danger",
+            "outline"
+          ],
+          "default": "default",
+          "notes": "soft / soft-danger added in 1.0.2; outline added in 1.0.3. outline = --df-select-bg background + --df-accent border."
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "values": [
+            "button",
+            "submit"
+          ],
+          "default": "button"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "toggle",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "default": false,
+          "reflects": true,
+          "notes": "shows a spinner and makes the control inert (clicks and submits are dropped); combine with your own request handling."
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "Button label / content."
+        }
+      ],
+      "events": [
+        {
+          "name": "toggle-change",
+          "bubbles": true,
+          "detail": {
+            "active": "boolean"
+          }
+        }
+      ],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--border",
+          "affects": "default border"
+        },
+        {
+          "var": "--bg-raised",
+          "affects": "default background"
+        },
+        {
+          "var": "--text"
+        },
+        {
+          "var": "--df-dur-fast"
+        },
+        {
+          "var": "--df-ease"
+        },
+        {
+          "var": "--df-dur"
+        },
+        {
+          "var": "--focus-ring",
+          "affects": "keyboard focus halo"
+        },
+        {
+          "var": "--bg-hover",
+          "affects": "hover fill"
+        },
+        {
+          "var": "--df-accent",
+          "affects": "primary fill, active/hover border, soft text"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--df-accent-soft",
+          "affects": "soft variant wash"
+        },
+        {
+          "var": "--accent-soft"
+        },
+        {
+          "var": "--bg"
+        },
+        {
+          "var": "--danger",
+          "affects": "danger / soft-danger color"
+        },
+        {
+          "var": "--danger-soft",
+          "affects": "soft-danger wash"
+        },
+        {
+          "var": "--df-select-bg",
+          "affects": "outline variant background"
+        }
+      ],
+      "a11y": "aria-pressed reflects `active` when `toggle` is set; type=submit forwards to the closest light-DOM form.",
+      "example": "<druid-button variant=\"primary\" type=\"submit\">Save</druid-button>\n<druid-button variant=\"outline\">Quants ▾</druid-button>",
+      "gotchas": [
+        "variant=outline is the dropdown-trigger look: --df-select-bg background with a --df-accent border at rest.",
+        "Recolor any variant with a df-ok / df-warn / df-danger class, which repoint --df-accent / --df-accent-soft.",
+        "The inner <button> sizes to its content; a forced width on the host does not stretch it.",
+        "loading does not disable the underlying button element — it suppresses the click in JS — so a form still sees the control, it just cannot be re-submitted."
+      ]
+    },
+    {
+      "tag": "druid-chat-message",
+      "since": "1.0.0",
+      "summary": "one chat bubble.",
+      "attributes": [
+        {
+          "name": "sender",
+          "type": "enum",
+          "values": [
+            "user",
+            "assistant"
+          ],
+          "default": "assistant",
+          "reflects": true
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "Message content."
+        },
+        {
+          "name": "actions",
+          "purpose": "Row of icon-buttons (hidden when empty)."
+        }
+      ],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--bg"
+        },
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--text"
+        },
+        {
+          "var": "--accent-soft"
+        },
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--accent"
+        }
+      ],
+      "example": "<druid-chat-message sender=\"assistant\" label=\"llama3\">\n  Hi there\n  <druid-icon-button slot=\"actions\" circle small icon=\"copy\" label=\"Copy\"></druid-icon-button>\n</druid-chat-message>",
+      "gotchas": [
+        "User bubbles (sender=user) auto-tint slotted icon-buttons to the accent."
+      ]
+    },
+    {
+      "tag": "druid-footer",
+      "since": "1.0.0",
+      "summary": "version line with optional author link.",
+      "attributes": [
+        {
+          "name": "brand",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "author",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "github",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "slots": [
+        {
+          "name": ""
+        }
+      ],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--accent"
+        }
+      ],
+      "gotchas": [
+        "Rendered by base.jinja2; brand, version, author, github attributes."
+      ]
+    },
+    {
+      "tag": "druid-icon",
+      "since": "1.0.1",
+      "summary": "renders an icon the consuming app registered.",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "size",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "slots": [],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [],
+      "example": "<druid-icon name=\"rocket\" size=\"34px\"></druid-icon>",
+      "gotchas": [
+        "The framework ships NO icons; register them once with druids.registerIcons({name: svg}). Unknown names render nothing.",
+        "Inherits currentColor and sizes in em; set `size` for a one-off."
+      ]
+    },
+    {
+      "tag": "druid-icon-button",
+      "since": "1.0.1",
+      "summary": "the square .icon-btn from the classic apps.",
+      "attributes": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": [
+            "default",
+            "soft",
+            "soft-danger"
+          ],
+          "default": "default"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "toggle",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "circle",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "small",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "default": false,
+          "reflects": true,
+          "notes": "shows a spinner and makes the control inert (clicks and submits are dropped); combine with your own request handling."
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "Inline <svg> to render when `icon` is not set."
+        }
+      ],
+      "events": [
+        {
+          "name": "toggle-change",
+          "bubbles": true,
+          "detail": {
+            "active": "boolean"
+          }
+        }
+      ],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--df-icon-btn-border",
+          "affects": "border override"
+        },
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--df-icon-btn-color",
+          "affects": "resting icon color override"
+        },
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--df-dur-fast"
+        },
+        {
+          "var": "--df-ease"
+        },
+        {
+          "var": "--df-dur"
+        },
+        {
+          "var": "--focus-ring",
+          "affects": "keyboard focus halo"
+        },
+        {
+          "var": "--df-accent-soft",
+          "affects": "soft variant wash"
+        },
+        {
+          "var": "--accent-soft"
+        },
+        {
+          "var": "--df-accent",
+          "affects": "active/hover accent"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--danger-soft",
+          "affects": "soft-danger wash"
+        },
+        {
+          "var": "--danger",
+          "affects": "soft-danger color"
+        },
+        {
+          "var": "--df-icon-btn-hover-bg",
+          "affects": "hover background override"
+        },
+        {
+          "var": "--bg-hover"
+        },
+        {
+          "var": "--df-icon-btn-hover-color",
+          "affects": "hover icon color override"
+        },
+        {
+          "var": "--text"
+        }
+      ],
+      "a11y": "Set `label` for the aria-label; renders as an <a> when `href` is set.",
+      "example": "<druid-icon-button icon=\"pencil\" label=\"Edit\" toggle></druid-icon-button>\n<druid-icon-button variant=\"soft\" class=\"df-warn\" icon=\"upload\" label=\"Unload\"></druid-icon-button>",
+      "gotchas": [
+        "Prefer `icon=\"name\"` (a registered icon) over slotting an <svg>; the icon must be registered first via druids.registerIcons.",
+        "soft / soft-danger mirror druid-button: colored wash at rest, border on hover; pair soft with a df-* class to retint.",
+        "loading does not disable the underlying button element — it suppresses the click in JS — so a form still sees the control, it just cannot be re-submitted."
+      ]
+    },
+    {
+      "tag": "druid-log-view",
+      "since": "1.0.0",
+      "summary": "the application-log tab as one component: fetches entries, filters by level, follows the tail, refreshes on demand.",
+      "attributes": [
+        {
+          "name": "src",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "poll",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "boxed",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "heading",
+          "type": "string",
+          "default": "Log"
+        }
+      ],
+      "slots": [],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--df-panel-body-bg"
+        },
+        {
+          "var": "--bg-dim"
+        },
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--warn"
+        },
+        {
+          "var": "--danger"
+        },
+        {
+          "var": "--df-panel-header-bg"
+        },
+        {
+          "var": "--bg-header"
+        }
+      ],
+      "a11y": "Self-polling log table; polls only while visible.",
+      "example": "<druid-log-view src=\"/api/log\" poll=\"5\" boxed heading=\"Application Log\"></druid-log-view>",
+      "gotchas": [
+        "src returns JSON: a bare array or {entries:[...]} of {time,level,source,message} or {raw}.",
+        "poll is in seconds (0 = off); boxed paints a raised header over a base-shade body (--df-panel-header-bg / --df-panel-body-bg)."
+      ]
+    },
+    {
+      "tag": "druid-login-card",
+      "since": "1.0.0",
+      "summary": "the sign-in card.",
+      "attributes": [
+        {
+          "name": "brand",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "action",
+          "type": "string",
+          "default": "/login"
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "subtitle",
+          "type": "string",
+          "default": "Sign in to continue"
+        }
+      ],
+      "slots": [],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [],
+      "gotchas": [
+        "Light-DOM, form-participating login form rendered by the framework login page; brand, action, error, subtitle."
+      ]
+    },
+    {
+      "tag": "druid-navbar",
+      "since": "1.0.0",
+      "summary": "the app header: leaf + brand, tabs region, actions region.",
+      "attributes": [
+        {
+          "name": "brand",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "logoutHref",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "Tabs."
+        },
+        {
+          "name": "actions",
+          "purpose": "Right-side buttons."
+        }
+      ],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--bg-raised"
+        },
+        {
+          "var": "--accent"
+        }
+      ],
+      "gotchas": [
+        "Usually rendered by base.jinja2 from the Druids object; brand + logout-href attributes."
+      ]
+    },
+    {
+      "tag": "druid-popover",
+      "since": "1.0.3",
+      "summary": "Anchored panel primitive: hangs arbitrary content off a trigger in the top layer, with light-dismiss and same-trigger toggle.",
+      "attributes": [
+        {
+          "name": "placement",
+          "type": "enum",
+          "values": [
+            "bottom-start",
+            "bottom-end",
+            "top-start",
+            "top-end",
+            "left-start",
+            "right-start"
+          ],
+          "default": "bottom-start"
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "The panel content (any markup)."
+        },
+        {
+          "name": "trigger",
+          "purpose": "The anchor element; clicking it toggles the panel."
+        }
+      ],
+      "events": [
+        {
+          "name": "popover-toggle",
+          "bubbles": true,
+          "detail": {
+            "open": "boolean"
+          }
+        }
+      ],
+      "methods": [
+        {
+          "name": "show",
+          "signature": "show(): void"
+        },
+        {
+          "name": "hide",
+          "signature": "hide(): void"
+        },
+        {
+          "name": "toggle",
+          "signature": "toggle(): void"
+        }
+      ],
+      "consumes_css_vars": [
+        {
+          "var": "--bg-raised",
+          "affects": "panel background"
+        },
+        {
+          "var": "--df-accent",
+          "affects": "panel border color (override for a quiet-at-rest / accent-when-open trigger)"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--radius",
+          "affects": "panel corner radius"
+        },
+        {
+          "var": "--shadow",
+          "affects": "panel elevation shadow"
+        },
+        {
+          "var": "--text"
+        }
+      ],
+      "a11y": "Panel is role=dialog; light-dismiss on outside-click and Esc (scroll never dismisses); same-trigger click toggles.",
+      "example": "<druid-popover placement=\"bottom-end\">\n  <druid-button slot=\"trigger\" variant=\"outline\">Quants ▾</druid-button>\n  <div>…panel content…</div>\n</druid-popover>",
+      "gotchas": [
+        "placement splits on '-': base edge (top|bottom|left|right) + align (start|end). bottom-start aligns the panel's LEFT edge to the trigger; bottom-end aligns its RIGHT edge. Bare 'left'/'right' default to -start.",
+        "Panel is position:fixed in the top layer (native popover), so it escapes overflow/scroll clipping.",
+        "Tracks the trigger on scroll and resize (capture-phase scroll listener catches inner scroll containers too); it repositions rather than dismissing.",
+        "It aligns to the border-box of whatever you put in slot=trigger. A druid-button's inner <button> sizes to its content and won't fill a forced-wider host width, so give the trigger its natural size or the alignment will look offset.",
+        "Flips to the opposite side when short on viewport space, then clamps into the viewport."
+      ]
+    },
+    {
+      "tag": "druid-progress",
+      "since": "1.0.0",
+      "summary": "thin accent progress bar.",
+      "attributes": [
+        {
+          "name": "value",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100
+        },
+        {
+          "name": "indeterminate",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        }
+      ],
+      "slots": [],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--accent"
+        }
+      ],
+      "a11y": "roles: progressbar",
+      "example": "<druid-progress value=\"40\" max=\"100\"></druid-progress>",
+      "gotchas": [
+        "indeterminate (boolean) animates an accent bar with no value."
+      ]
+    },
+    {
+      "tag": "druid-search",
+      "since": "1.0.0",
+      "summary": "search input with magnifier icon for live filtering.",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "default": "Search"
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "debounce",
+          "type": "number",
+          "default": 150
+        }
+      ],
+      "slots": [],
+      "events": [
+        {
+          "name": "search",
+          "bubbles": true,
+          "detail": {
+            "value": "string"
+          }
+        }
+      ],
+      "methods": [
+        {
+          "name": "focus",
+          "signature": "focus(): void"
+        }
+      ],
+      "consumes_css_vars": [],
+      "example": "<druid-search placeholder=\"Filter notes\" debounce=\"150\"></druid-search>",
+      "gotchas": [
+        "Light-DOM input; fires `search` with the current value while typing, debounced by `debounce` ms."
+      ]
+    },
+    {
+      "tag": "druid-select",
+      "since": "1.0.0",
+      "summary": "framework-styled dropdown (native <select> popups are OS-rendered and can't match the design).",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "default": "Select..."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "slots": [],
+      "events": [
+        {
+          "name": "change",
+          "bubbles": true,
+          "detail": {
+            "value": "string"
+          }
+        }
+      ],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--radius",
+          "affects": "corner radius"
+        },
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--df-select-bg",
+          "affects": "trigger + menu background (defaults to --bg)"
+        },
+        {
+          "var": "--bg"
+        },
+        {
+          "var": "--text"
+        },
+        {
+          "var": "--df-dur-fast"
+        },
+        {
+          "var": "--df-ease"
+        },
+        {
+          "var": "--df-dur"
+        },
+        {
+          "var": "--df-accent",
+          "affects": "focus/open border and selected item"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--focus-ring"
+        },
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--shadow",
+          "affects": "menu shadow"
+        },
+        {
+          "var": "--bg-hover"
+        },
+        {
+          "var": "--df-accent-soft",
+          "affects": "selected item wash"
+        },
+        {
+          "var": "--accent-soft"
+        }
+      ],
+      "a11y": "Trigger is aria-haspopup=listbox with aria-expanded; menu is role=listbox, items role=option.",
+      "example": "<druid-select name=\"model\" placeholder=\"Choose model\">\n  <option value=\"a\">Model A</option>\n  <option value=\"b\">Model B</option>\n</druid-select>",
+      "gotchas": [
+        "Set `name` to get a hidden light-DOM input so classic form POSTs carry the value.",
+        "Options are declared as <option> children, never rendered directly; they are watched via MutationObserver."
+      ]
+    },
+    {
+      "tag": "druid-subtabs",
+      "since": "1.0.0",
+      "summary": "a self-contained, boxed sub-tab layout: a bordered card whose header is a strip of <druid-tab> pills and whose body shows one [data-subtab-panel] at a time.",
+      "attributes": [
+        {
+          "name": "active",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "heading",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "boxed",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "The [data-subtab-panel] panels."
+        },
+        {
+          "name": "tab",
+          "purpose": "The <druid-tab> pill buttons."
+        }
+      ],
+      "events": [
+        {
+          "name": "subtab-change",
+          "bubbles": true,
+          "detail": {
+            "panel": "string"
+          }
+        },
+        {
+          "name": "tab-change",
+          "bubbles": true,
+          "detail": {
+            "panel": "string"
+          }
+        }
+      ],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--df-subtabs-heading-color"
+        },
+        {
+          "var": "--df-accent"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--df-panel-body-bg"
+        },
+        {
+          "var": "--bg-raised"
+        },
+        {
+          "var": "--df-panel-header-bg"
+        },
+        {
+          "var": "--bg-header"
+        }
+      ],
+      "example": "<druid-subtabs active=\"models\" heading=\"Models\" boxed>\n  <druid-tab slot=\"tab\" panel=\"models\">Models</druid-tab>\n  <div data-subtab-panel=\"models\">…</div>\n</druid-subtabs>",
+      "gotchas": [
+        "Scoped to itself (unlike druid-tabs), so it nests inside a page tab.",
+        "Emits its own subtab-change plus a bubbling tab-change so visibility-aware children (druid-log-view) pause/resume."
+      ]
+    },
+    {
+      "tag": "druid-tab",
+      "since": "1.0.0",
+      "summary": "<druid-tabs> / <druid-tab> — the navbar tab strip.",
+      "attributes": [
+        {
+          "name": "panel",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        }
+      ],
+      "slots": [
+        {
+          "name": ""
+        }
+      ],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--df-dur-fast"
+        },
+        {
+          "var": "--df-ease"
+        },
+        {
+          "var": "--df-dur"
+        },
+        {
+          "var": "--bg-hover"
+        },
+        {
+          "var": "--text"
+        },
+        {
+          "var": "--focus-ring"
+        },
+        {
+          "var": "--accent-soft"
+        },
+        {
+          "var": "--accent"
+        }
+      ],
+      "example": "<druid-tab panel=\"logs\">Logs</druid-tab>",
+      "gotchas": [
+        "A pill inside druid-tabs (panel + reflected active) or slot=tab inside druid-subtabs."
+      ]
+    },
+    {
+      "tag": "druid-table",
+      "since": "1.0.5",
+      "summary": "Sorting and live filtering for a plain light-DOM table (slotted, never rebuilt).",
+      "attributes": [
+        {
+          "name": "heading",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "searchable",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "searchPlaceholder",
+          "type": "string",
+          "default": "Filter"
+        },
+        {
+          "name": "filter",
+          "type": "string",
+          "default": "",
+          "notes": "the active query; set it from the app to filter without the built-in box."
+        },
+        {
+          "name": "sortable",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "default": "",
+          "notes": "column key to sort by: a <th>'s data-key, else its trimmed header text."
+        },
+        {
+          "name": "direction",
+          "type": "string",
+          "default": "asc"
+        },
+        {
+          "name": "emptyText",
+          "type": "string",
+          "default": "Nothing matches that filter."
+        },
+        {
+          "name": "boxed",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "the app's own <table>, normally <table class=\"df-table\">"
+        }
+      ],
+      "events": [
+        {
+          "name": "table-filter",
+          "bubbles": true,
+          "detail": {
+            "value": "string — the current query",
+            "visible": "number — rows still shown"
+          }
+        },
+        {
+          "name": "table-sort",
+          "bubbles": true,
+          "detail": {
+            "key": "string — the sorted column's data-key, else its header text",
+            "direction": "\"asc\" | \"desc\""
+          }
+        }
+      ],
+      "methods": [
+        {
+          "name": "refresh",
+          "signature": "refresh(): void"
+        },
+        {
+          "name": "setFilter",
+          "signature": "setFilter(value: string): void"
+        }
+      ],
+      "consumes_css_vars": [
+        {
+          "var": "--border"
+        },
+        {
+          "var": "--radius-sm"
+        },
+        {
+          "var": "--df-select-bg",
+          "affects": "filter input background"
+        },
+        {
+          "var": "--bg-dim"
+        },
+        {
+          "var": "--text"
+        },
+        {
+          "var": "--df-dur"
+        },
+        {
+          "var": "--df-ease"
+        },
+        {
+          "var": "--df-accent"
+        },
+        {
+          "var": "--accent"
+        },
+        {
+          "var": "--focus-ring",
+          "affects": "filter input focus halo"
+        },
+        {
+          "var": "--text-muted"
+        },
+        {
+          "var": "--radius"
+        },
+        {
+          "var": "--df-panel-body-bg",
+          "affects": "table well behind the rows"
+        },
+        {
+          "var": "--df-panel-header-bg",
+          "affects": "header bar of the boxed table"
+        },
+        {
+          "var": "--bg-header"
+        }
+      ],
+      "a11y": "Sorted headers carry aria-sort=ascending|descending; the filter input is labelled from search-placeholder.",
+      "example": "<druid-table sortable searchable heading=\"Models\" boxed>\n  <table class=\"df-table zebra\">\n    <thead><tr><th>Name</th><th class=\"num\" data-key=\"size\">Size</th><th data-sort=\"none\">Actions</th></tr></thead>\n    <tbody><tr><td>gemma</td><td class=\"num\" data-value=\"8100\">8.1 GB</td><td><druid-button>run</druid-button></td></tr></tbody>\n  </table>\n</druid-table>",
+      "gotchas": [
+        "The table is slotted light DOM: style it with .df-table and render its rows server-side as usual. The component only reorders <tr> nodes and toggles their hidden flag.",
+        "Sorting compares a cell's data-value when present, else its text; two values that both parse as numbers compare numerically. Use data-value for anything formatted (\"8.1 GB\", a date).",
+        "<th data-sort=\"none\"> opts a column out of sorting (action columns).",
+        "Rows added or replaced later are picked up automatically by a MutationObserver; call refresh() only if you mutate rows in a way that does not touch the DOM.",
+        "Sticky headers and the scroll container come from .df-table / .df-table-wrap in druids.css, not from this component.",
+        "A .df-table is width:100%, so it can never outgrow the scroll container and a narrow viewport squeezes the columns. Add class \"wide\" to the table (or tune --df-table-min-width) to give it a width floor and get horizontal scrolling; tables with 5+ columns get that floor automatically under 720px.",
+        "The scroll container only engages if the table's ancestors can shrink: give any grid track minmax(0, ...) and any flex/grid item min-width: 0, otherwise the ancestor grows to the table's floor and the page gets the horizontal scrollbar instead. Applies to the automatic 5+-column floor too, which needs no opt-in."
+      ]
+    },
+    {
+      "tag": "druid-tabs",
+      "since": "1.0.0",
+      "summary": "The strip scrolls inside itself instead of widening the page: min-width 0 lets it shrink below its content.",
+      "attributes": [
+        {
+          "name": "active",
+          "type": "string",
+          "default": ""
+        }
+      ],
+      "slots": [
+        {
+          "name": ""
+        }
+      ],
+      "events": [
+        {
+          "name": "tab-change",
+          "bubbles": true,
+          "detail": {
+            "panel": "string"
+          }
+        }
+      ],
+      "methods": [],
+      "consumes_css_vars": [],
+      "a11y": "Document-level tab strip; you own the .df-tab-panel[data-tab-panel] sections and toggle .active.",
+      "example": "<druid-tabs active=\"home\">\n  <druid-tab panel=\"home\">Home</druid-tab>\n  <druid-tab panel=\"logs\">Logs</druid-tab>\n</druid-tabs>\n<section class=\"df-tab-panel active\" data-tab-panel=\"home\">…</section>",
+      "gotchas": [
+        "The strip scrolls horizontally inside itself when the tabs do not fit, so it never widens the page on a narrow viewport — in the navbar or placed in content alike."
+      ]
+    },
+    {
+      "tag": "druid-textarea",
+      "since": "1.0.0",
+      "summary": "a textarea whose default height is set in line counts.",
+      "attributes": [
+        {
+          "name": "name",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "rows",
+          "type": "number",
+          "default": 3
+        },
+        {
+          "name": "maxlength",
+          "type": "number",
+          "default": -1
+        },
+        {
+          "name": "autosize",
+          "type": "boolean",
+          "default": false,
+          "reflects": true
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false
+        }
+      ],
+      "slots": [],
+      "events": [],
+      "methods": [
+        {
+          "name": "focus",
+          "signature": "focus(): void"
+        }
+      ],
+      "consumes_css_vars": [],
+      "example": "<druid-textarea name=\"prompt\" rows=\"4\" autosize placeholder=\"System prompt…\"></druid-textarea>",
+      "gotchas": [
+        "Light DOM, so it posts in normal forms and autofills. maxlength -1 = no limit; autosize grows to content."
+      ]
+    },
+    {
+      "tag": "druid-tooltip",
+      "since": "1.0.3",
+      "summary": "Themed hover/focus bubble that wraps the element it describes; works over disabled controls where native title is unreliable.",
+      "attributes": [
+        {
+          "name": "text",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "name": "placement",
+          "type": "enum",
+          "values": [
+            "top",
+            "bottom",
+            "left",
+            "right"
+          ],
+          "default": "top",
+          "reflects": true
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false
+        }
+      ],
+      "slots": [
+        {
+          "name": "",
+          "purpose": "The element being described (the hover/focus target)."
+        }
+      ],
+      "events": [],
+      "methods": [],
+      "consumes_css_vars": [
+        {
+          "var": "--radius",
+          "affects": "bubble corner radius"
+        },
+        {
+          "var": "--border",
+          "affects": "bubble border"
+        },
+        {
+          "var": "--bg-raised",
+          "affects": "bubble background"
+        },
+        {
+          "var": "--text",
+          "affects": "bubble text color"
+        },
+        {
+          "var": "--shadow",
+          "affects": "bubble shadow"
+        }
+      ],
+      "a11y": "Bubble is role=tooltip; shows on hover and focus-within, Esc hides it.",
+      "example": "<druid-tooltip text=\"Locked while a model is pinned\">\n  <druid-textarea disabled></druid-textarea>\n</druid-tooltip>",
+      "gotchas": [
+        "Empty or cleared `text` hides the bubble entirely — drive a conditional tooltip by setting/clearing `text` (or set `disabled`).",
+        "Bubble renders in the top layer, so scroll/overflow ancestors never clip it; it flips to stay on-screen.",
+        "Because the wrapper owns the hover, it fires over a disabled child control (unlike native title)."
+      ]
+    }
+  ],
+  "apis": [
+    {
+      "api": "druids.ACCENTS",
+      "since": "1.0.0",
+      "signature": "ACCENTS: string[]",
+      "returns": "string[]",
+      "summary": "Array of preset accent hex values (the palette)."
+    },
+    {
+      "api": "druids.applyAccent",
+      "since": "1.0.0",
+      "signature": "applyAccent(color: string): void",
+      "returns": "void",
+      "summary": "Set the app accent color (hex); persisted per app.",
+      "example": "druids.applyAccent(\"#5b8def\");"
+    },
+    {
+      "api": "druids.confirm",
+      "since": "1.0.1",
+      "signature": "confirm(message: string, opts: ConfirmOptions = {}): Promise<boolean>",
+      "returns": "Promise<boolean>",
+      "params": {
+        "opts": {
+          "title": "string",
+          "confirmLabel": "string",
+          "cancelLabel": "string",
+          "danger": "boolean"
+        }
+      },
+      "summary": "Promise-returning yes/no modal on the .df-dialog chrome. Resolves false on cancel or dismiss.",
+      "example": "druids.confirm(\"Delete this model?\", { danger: true }).then(ok => { if (ok) … });"
+    },
+    {
+      "api": "druids.modal",
+      "since": "1.0.3",
+      "signature": "modal(opts: ModalOptions = {}): HTMLDialogElement",
+      "returns": "HTMLDialogElement",
+      "params": {
+        "opts": {
+          "title": "string",
+          "content": "string | Node",
+          "actions": "ModalAction[]",
+          "dismissable": "boolean"
+        }
+      },
+      "summary": "Open a modal with arbitrary content on the .df-dialog chrome (backdrop / Esc / focus-trap); returns the <dialog>, already open.",
+      "example": "druids.modal({ title: \"Repo quants\", content: node, actions: [{ label: \"Close\" }] });"
+    },
+    {
+      "api": "druids.prompt",
+      "since": "1.0.1",
+      "signature": "prompt(message: string, opts: PromptOptions = {}): Promise<string | null>",
+      "returns": "Promise<string | null>",
+      "params": {
+        "opts": {
+          "title": "string",
+          "placeholder": "string",
+          "value": "string",
+          "confirmLabel": "string",
+          "cancelLabel": "string"
+        }
+      },
+      "summary": "Promise-returning text-input modal. Resolves the string on OK, or null on cancel/dismiss.",
+      "example": "druids.prompt(\"Pin as:\", { value: current }).then(name => { if (name !== null) … });"
+    },
+    {
+      "api": "druids.registerIcon",
+      "since": "1.0.1",
+      "signature": "registerIcon(name: string, svg: string): void",
+      "returns": "void",
+      "summary": "Register one icon by name for <druid-icon> / icon=.",
+      "example": "druids.registerIcon(\"pin\", '<svg viewBox=\"0 0 24 24\" …></svg>');"
+    },
+    {
+      "api": "druids.registerIcons",
+      "since": "1.0.1",
+      "signature": "registerIcons(icons: Record<string, string>): void",
+      "returns": "void",
+      "summary": "Register a map of {name: svgString} for <druid-icon> / icon=.",
+      "example": "druids.registerIcons({ pin: '<svg…>', x: '<svg…>' });"
+    },
+    {
+      "api": "druids.startRainbow",
+      "since": "1.0.0",
+      "signature": "startRainbow(): void",
+      "returns": "void",
+      "summary": "Start the animated cycling accent."
+    },
+    {
+      "api": "druids.stopRainbow",
+      "since": "1.0.0",
+      "signature": "stopRainbow(): void",
+      "returns": "void",
+      "summary": "Stop the animated cycling accent."
+    },
+    {
+      "api": "druids.toast",
+      "since": "1.0.0",
+      "signature": "toast(message: string, type: ToastType = \"info\", duration = 3000): HTMLElement",
+      "returns": "HTMLElement",
+      "summary": "Show a stacked, auto-dismissing notification.",
+      "example": "druids.toast(\"Saved\", \"ok\");\ndruids.toast(\"That failed\", \"danger\", 5000);"
+    }
+  ]
+}

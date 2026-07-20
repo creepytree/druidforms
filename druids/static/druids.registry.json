@@ -1,0 +1,137 @@
+{
+  "version": "1.0.6",
+  "generated": "2026-08-02",
+  "elements": [
+    {
+      "tag": "druid-accent-picker",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-button",
+      "since": "1.0.0",
+      "variants": [
+        "default",
+        "primary",
+        "danger",
+        "soft",
+        "soft-danger",
+        "outline"
+      ]
+    },
+    {
+      "tag": "druid-chat-message",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-footer",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-icon",
+      "since": "1.0.1"
+    },
+    {
+      "tag": "druid-icon-button",
+      "since": "1.0.1",
+      "variants": [
+        "default",
+        "soft",
+        "soft-danger"
+      ]
+    },
+    {
+      "tag": "druid-log-view",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-login-card",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-navbar",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-popover",
+      "since": "1.0.3"
+    },
+    {
+      "tag": "druid-progress",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-search",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-select",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-subtabs",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-tab",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-table",
+      "since": "1.0.5"
+    },
+    {
+      "tag": "druid-tabs",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-textarea",
+      "since": "1.0.0"
+    },
+    {
+      "tag": "druid-tooltip",
+      "since": "1.0.3"
+    }
+  ],
+  "apis": [
+    {
+      "name": "druids.ACCENTS",
+      "since": "1.0.0"
+    },
+    {
+      "name": "druids.applyAccent",
+      "since": "1.0.0"
+    },
+    {
+      "name": "druids.confirm",
+      "since": "1.0.1"
+    },
+    {
+      "name": "druids.modal",
+      "since": "1.0.3"
+    },
+    {
+      "name": "druids.prompt",
+      "since": "1.0.1"
+    },
+    {
+      "name": "druids.registerIcon",
+      "since": "1.0.1"
+    },
+    {
+      "name": "druids.registerIcons",
+      "since": "1.0.1"
+    },
+    {
+      "name": "druids.startRainbow",
+      "since": "1.0.0"
+    },
+    {
+      "name": "druids.stopRainbow",
+      "since": "1.0.0"
+    },
+    {
+      "name": "druids.toast",
+      "since": "1.0.0"
+    }
+  ]
+}

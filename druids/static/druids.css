@@ -1,0 +1,1610 @@
+/* druids.css — design tokens and light-DOM base styles.
+   Components carry their own styles in shadow DOM; everything here is either
+   a token (custom properties pierce shadow roots) or styling for plain
+   light-DOM markup (page skeleton, forms, the login card). */
+
+/* Vendored UI font: Inter (variable, latin subset — regenerate from the
+   official release when updating, like lit-vendor.js). swap keeps first
+   paint on the system fallback. */
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-var-latin.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* native widget chrome (select popups, scrollbars, pickers) in dark */
+    color-scheme: dark;
+
+    /* Surface ladder — one ordered scale, dim to lit. Every surface in the
+       framework picks a rung, so two adjacent elements are always tellable
+       apart without a heavy border:
+         dim     sunken wells (data bodies, log output, inputs)
+         bg      the page itself
+         raised  cards and panels lifted off the page
+         header  the bar that titles a raised thing (the lightest resting shade)
+         hover   transient pointer feedback only — never a resting fill */
+    --bg-dim: #0c0f15;
+    --bg: #12151c;
+    --bg-raised: #1a1f2a;
+    --bg-header: #212938;
+    --bg-hover: #2a3345;
+    --border: #2c3444;
+    /* for edges that must read as an edge (table rules, sticky header underline) */
+    --border-strong: #3b465c;
+    --text: #dde3ee;
+    --text-muted: #8b94a7;
+    /* dimmed further: watermarks, empty-state art, disabled glyphs */
+    --text-faint: #5a6478;
+    /* fallback before the bundle runs, the palette lives in theme.ts */
+    --accent: #5b8def;
+    --accent-rgb: 91, 141, 239;
+    --accent-soft: rgba(91, 141, 239, 0.18);
+    /* own red, brighter than the red accent swatch so delete stays distinct */
+    --danger: #ff6b6b;
+    --danger-soft: rgba(255, 107, 107, 0.18);
+    --ok: #4fbf82;
+    --ok-soft: rgba(79, 191, 130, 0.18);
+    --warn: #d9a441;
+    --warn-soft: rgba(217, 164, 65, 0.18);
+    --radius: 10px;
+    /* tighter radius for dense chrome (table cells, chips, inputs in a row) */
+    --radius-sm: 6px;
+    --shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+
+    /* Focus: one ring, used by every control in light DOM and shadow DOM. An
+       accent halo rather than a UA outline — visible on any rung of the ladder
+       and it follows the app accent. */
+    --focus-ring: 0 0 0 3px rgba(var(--accent-rgb), 0.32);
+    /* the same halo as a resting glow, for things that want to look "lit" */
+    --glow: 0 0 12px rgba(var(--accent-rgb), 0.28);
+
+    /* Motion. Components and utilities read these, so an app can slow the whole
+       UI down, speed it up, or (with --df-dur*: 0s) switch it off in one place. */
+    --df-dur-fast: 0.12s;
+    --df-dur: 0.2s;
+    --df-dur-slow: 0.42s;
+    /* organic ease-out: quick to leave, unhurried to settle */
+    --df-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Global motion opt-out: zero the tokens so component transitions collapse too
+   (custom properties pierce shadow roots; the components have no @media of
+   their own), then stop the light-DOM animations. */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --df-dur-fast: 0s;
+        --df-dur: 0s;
+        --df-dur-slow: 0s;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    /* themed scrollbars (firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* themed scrollbars (webkit) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* the bundle is a deferred module, so custom elements upgrade after first
+   paint; until then they are unknown inline elements and slotted svgs render
+   at their default (huge) size — keep them hidden until defined */
+druid-navbar:not(:defined),
+druid-tabs:not(:defined),
+druid-tab:not(:defined),
+druid-button:not(:defined),
+druid-icon:not(:defined),
+druid-icon-button:not(:defined),
+druid-accent-picker:not(:defined),
+druid-footer:not(:defined),
+druid-login-card:not(:defined),
+druid-textarea:not(:defined),
+druid-log-view:not(:defined),
+druid-progress:not(:defined),
+druid-search:not(:defined),
+druid-chat-message:not(:defined),
+druid-tooltip:not(:defined),
+druid-popover:not(:defined),
+druid-subtabs:not(:defined),
+druid-table:not(:defined),
+druid-select:not(:defined) {
+    display: none;
+}
+
+/* The shell is a fixed-height flex column: navbar and footer stay put and only
+   the panel scrolls. Below 900px that model breaks down (see the flow tier at
+   the end of this file) and the page is handed back to document flow —
+   <body class="df-shell-fixed"> keeps the fixed shell at every width. */
+body {
+    margin: 0;
+    height: 100vh;
+    /* dvh excludes the mobile URL bar, which 100vh counts as visible */
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+/* ---------- layout ---------- */
+
+/* fixed page: navbar and footer stay, only the panel content scrolls */
+main {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 30px 22px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* panels toggled by <druid-tabs> via data-tab-panel */
+.df-tab-panel {
+    display: none;
+}
+
+.df-tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.df-tab-panel.scroll.active {
+    overflow-y: auto;
+}
+
+/* panels toggled by <druid-subtabs> (its own scoped, boxed sub-tabs) */
+[data-subtab-panel] {
+    display: none;
+}
+
+[data-subtab-panel].active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+[data-subtab-panel].scroll.active {
+    overflow-y: auto;
+}
+
+/* ---------- card / boxed panel ----------
+   Wrap a tab panel's content in .df-card for the boxed look with a header
+   line; leave it out for the bare style. */
+
+.df-card {
+    display: flex;
+    flex-direction: column;
+    /* size to content; never absorb flex shrinkage in a scrolling panel */
+    flex-shrink: 0;
+    background: var(--df-panel-body-bg, var(--bg-raised));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color var(--df-dur) var(--df-ease);
+}
+
+/* stretch to fill the tab panel (give the body class "scroll") */
+.df-card.fill {
+    flex: 1;
+    min-height: 0;
+}
+
+/* the counterpart: size to content, but never grow past the panel — the card
+   stops at the panel's height and whatever is inside it scrolls instead. Its
+   body becomes a flex column so a single child (a .df-table-wrap, a
+   <druid-table>) can shrink and take the scrolling over. */
+.df-card.fit {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 100%;
+}
+
+.df-card.fit > .df-card-body,
+.df-card-body.column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* opt-in: the card answers the pointer with an accent-lit edge */
+.df-card.interactive:hover {
+    border-color: var(--df-accent, var(--accent));
+}
+
+/* The header is a *lighter* bar over the body — the same header/body split the
+   boxed components use, so a card and a <druid-log-view boxed> read alike.
+   Retarget both with --df-panel-header-bg / --df-panel-body-bg. */
+.df-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* the same bar at two other weights: .section for a card that titles a whole
+   page section (larger, accent-lit), .quiet for a small tile that should not
+   shout its own label */
+.df-card-header.section {
+    padding: 10px 12px;
+    color: var(--df-accent, var(--accent));
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+}
+
+.df-card-header.quiet {
+    padding: 6px 12px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.df-card-header .df-muted {
+    font-size: 0.85rem;
+}
+
+.df-card-body {
+    flex: 1;
+    min-height: 0;
+    padding: 12px;
+}
+
+.df-card-body.scroll {
+    overflow-y: auto;
+}
+
+/* the body as a sunken well — for output, tables and other data surfaces */
+.df-card-body.dim {
+    background: var(--bg-dim);
+}
+
+.df-card-body.flush {
+    padding: 0;
+}
+
+.df-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-top: 1px solid var(--border);
+}
+
+/* ---------- dialog (native <dialog>, the framework modal pattern) ----------
+   <dialog class="df-dialog"> + dialog.showModal(); a <form method="dialog">
+   inside closes it on submit. */
+
+dialog.df-dialog {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    min-width: min(340px, 92vw);
+    max-width: min(560px, 92vw);
+    /* open/close animation: fade + slight rise; allow-discrete keeps the
+       dialog displayed until the close transition finished */
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        overlay 0.18s ease allow-discrete,
+        display 0.18s ease allow-discrete;
+}
+
+dialog.df-dialog[open] {
+    opacity: 1;
+    transform: none;
+}
+
+@starting-style {
+    dialog.df-dialog[open] {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+}
+
+dialog.df-dialog::backdrop {
+    background: rgba(0, 0, 0, 0);
+    transition:
+        background 0.18s ease,
+        overlay 0.18s ease allow-discrete,
+        display 0.18s ease allow-discrete;
+}
+
+dialog.df-dialog[open]::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+@starting-style {
+    dialog.df-dialog[open]::backdrop {
+        background: rgba(0, 0, 0, 0);
+    }
+}
+
+dialog.df-dialog h3 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+}
+
+/* body text / input / button row for druids.confirm() and druids.prompt() */
+.df-dialog-text {
+    margin: 0 0 16px;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    /* honor newlines in the message */
+    white-space: pre-line;
+}
+
+.df-dialog-input {
+    width: 100%;
+    margin: 0 0 18px;
+}
+
+.df-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ---------- toasts (created by druids.toast()) ---------- */
+
+.df-toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.df-toast {
+    /* soft wash of the type color over the raised bg */
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    max-width: 340px;
+    animation: df-toast-in 0.2s ease-out;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.df-toast.ok {
+    background: linear-gradient(var(--ok-soft), var(--ok-soft)) var(--bg-raised);
+    border-left-color: var(--ok);
+}
+
+.df-toast.warn {
+    background: linear-gradient(var(--warn-soft), var(--warn-soft)) var(--bg-raised);
+    border-left-color: var(--warn);
+}
+
+.df-toast.danger {
+    background: linear-gradient(var(--danger-soft), var(--danger-soft)) var(--bg-raised);
+    border-left-color: var(--danger);
+}
+
+.df-toast.out {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+@keyframes df-toast-in {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ---------- forms (light DOM) ---------- */
+
+/* Text-ish controls read as sunken wells cut into the surface they sit on, so
+   an input is distinguishable from a card even when both are unfocused. */
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="email"],
+input[type="url"],
+input[type="tel"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="file"],
+textarea,
+select {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-dim);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+    transition:
+        border-color var(--df-dur) var(--df-ease),
+        box-shadow var(--df-dur) var(--df-ease);
+}
+
+/* One focus affordance for the whole framework: accent edge + accent halo.
+   :focus-visible so a click on an input does not light up the ring for mouse
+   users, but keyboard focus always shows. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+    outline: none;
+    border-color: var(--df-accent, var(--accent));
+    box-shadow: var(--focus-ring);
+}
+
+/* typing in a field still shows the accent edge, ring or not */
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--df-accent, var(--accent));
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+}
+
+select option {
+    background: var(--bg-raised);
+    color: var(--text);
+}
+
+/* the file input's own button, themed like a soft framework button */
+input[type="file"] {
+    padding: 5px 8px;
+}
+
+input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-header);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background var(--df-dur-fast) var(--df-ease);
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: var(--bg-hover);
+    border-color: var(--df-accent, var(--accent));
+}
+
+/* ---------- check controls ----------
+   Native inputs restyled in place (appearance: none), so they keep their
+   labels, form participation, keyboard behaviour and required/checked state.
+   The mark is drawn with the accent, the box stays a dim well. */
+
+input[type="checkbox"],
+input[type="radio"] {
+    appearance: none;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--bg-dim);
+    cursor: pointer;
+    transition:
+        background var(--df-dur-fast) var(--df-ease),
+        border-color var(--df-dur-fast) var(--df-ease),
+        box-shadow var(--df-dur) var(--df-ease);
+}
+
+input[type="radio"] {
+    border-radius: 50%;
+}
+
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+    border-color: var(--df-accent, var(--accent));
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    background: var(--df-accent, var(--accent));
+    border-color: var(--df-accent, var(--accent));
+}
+
+/* checkmark: two borders of a rotated box */
+input[type="checkbox"]:checked::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 8px;
+    margin: 1px auto 0;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(42deg);
+}
+
+input[type="checkbox"]:indeterminate {
+    background: var(--df-accent, var(--accent));
+    border-color: var(--df-accent, var(--accent));
+}
+
+input[type="checkbox"]:indeterminate::after {
+    content: "";
+    display: block;
+    width: 8px;
+    height: 2px;
+    margin: 6px auto;
+    background: var(--bg);
+}
+
+input[type="radio"]:checked::after {
+    content: "";
+    display: block;
+    width: 6px;
+    height: 6px;
+    margin: 4px auto;
+    border-radius: 50%;
+    background: var(--bg);
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+    cursor: not-allowed;
+}
+
+/* ---------- switch ----------
+   A checkbox wearing a track: <input type="checkbox" class="df-switch">.
+   Same element, same form value — only the paint differs from a checkbox. */
+
+input[type="checkbox"].df-switch {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    border-radius: 999px;
+}
+
+input[type="checkbox"].df-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transform: none;
+    transition:
+        transform var(--df-dur) var(--df-ease),
+        background var(--df-dur) var(--df-ease);
+}
+
+input[type="checkbox"].df-switch:checked::after {
+    background: var(--bg);
+    transform: translateX(14px);
+}
+
+/* ---------- range ---------- */
+
+input[type="range"] {
+    appearance: none;
+    width: 100%;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--bg-dim);
+    border: 1px solid var(--border);
+}
+
+input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--bg-dim);
+    border: 1px solid var(--border);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -6px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--df-accent, var(--accent));
+    box-shadow: var(--glow);
+    transition: transform var(--df-dur-fast) var(--df-ease);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--df-accent, var(--accent));
+    box-shadow: var(--glow);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+    transform: scale(1.15);
+}
+
+/* ---------- field (label + control + hint/error) ----------
+   <label class="df-field"><span class="df-label">Name</span>
+     <input type="text"><span class="df-hint">shown under the control</span></label>
+   .df-field-row puts the control before the text (checkbox / switch rows). */
+
+.df-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.df-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.df-hint {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.df-field-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+/* a field flagged invalid: the error tint reaches the control too */
+.df-field.invalid input,
+.df-field.invalid textarea,
+.df-field.invalid select {
+    border-color: var(--danger);
+}
+
+/* <druid-search> — light DOM (see druid-search.ts) */
+druid-search {
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+}
+
+druid-search svg {
+    position: absolute;
+    left: 10px;
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+druid-search input[type="search"] {
+    padding-left: 32px;
+    width: 100%;
+}
+
+/* <druid-textarea> — light DOM, so styled here; rows sets the default height in lines */
+druid-textarea {
+    display: block;
+}
+
+druid-textarea textarea {
+    display: block;
+    width: 100%;
+    resize: vertical;
+}
+
+druid-textarea[autosize] textarea {
+    overflow: hidden;
+    resize: none;
+}
+
+.df-muted {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* ---------- color utility classes ----------
+   Re-point a component's accent pair to another token; custom properties
+   inherit into shadow roots, so this recolors druid elements from plain
+   classes: <druid-button variant="soft" class="df-ok">Approve</druid-button> */
+
+.df-ok {
+    --df-accent: var(--ok);
+    --df-accent-soft: var(--ok-soft);
+}
+
+.df-warn {
+    --df-accent: var(--warn);
+    --df-accent-soft: var(--warn-soft);
+}
+
+.df-danger {
+    --df-accent: var(--danger);
+    --df-accent-soft: var(--danger-soft);
+}
+
+.df-form-error {
+    margin: 0;
+    color: var(--danger);
+    font-size: 0.85rem;
+}
+
+/* ---------- badge (status / capability / count pills) ----------
+   Neutral by default; the status modifiers wash it with a token color:
+   <span class="df-badge">7 ctx</span>
+   <span class="df-badge ok">ready</span>   (+ .warn / .danger / .accent) */
+
+.df-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.df-badge.ok {
+    background: var(--ok-soft);
+    border-color: transparent;
+    color: var(--ok);
+}
+
+.df-badge.warn {
+    background: var(--warn-soft);
+    border-color: transparent;
+    color: var(--warn);
+}
+
+.df-badge.danger {
+    background: var(--danger-soft);
+    border-color: transparent;
+    color: var(--danger);
+}
+
+.df-badge.accent {
+    background: var(--accent-soft);
+    border-color: transparent;
+    color: var(--accent);
+}
+
+/* ---------- stat (metric number + caption) ----------
+   A dashboard tile: drop into a .df-card-body.
+   <div class="df-stat-number">12</div><div class="df-stat-caption">Models</div> */
+
+.df-stat-number {
+    color: var(--text);
+    font-size: 1.9rem;
+    font-weight: 650;
+    line-height: 1.1;
+}
+
+.df-stat-caption {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* ---------- typography ----------
+   Element styling, not classes: an app writes plain <h2>/<p>/<code> and gets
+   the framework's rhythm. Tight margins — vertical space is the scarce thing
+   in a fixed-height panel. */
+
+h1,
+h2,
+h3,
+h4 {
+    margin: 0 0 8px;
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+}
+
+h1 {
+    font-size: 1.5rem;
+}
+
+h2 {
+    font-size: 1.15rem;
+}
+
+h3 {
+    font-size: 1rem;
+}
+
+h4 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* a heading directly after content needs the space back */
+* + h1,
+* + h2,
+* + h3,
+* + h4 {
+    margin-top: 20px;
+}
+
+p {
+    margin: 0 0 10px;
+    line-height: 1.55;
+}
+
+ul,
+ol {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+li::marker {
+    color: var(--df-accent, var(--accent));
+}
+
+hr,
+.df-divider {
+    height: 1px;
+    margin: 14px 0;
+    border: 0;
+    /* a rule that fades at both ends rather than hitting the edges */
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+}
+
+code,
+kbd,
+samp,
+pre {
+    font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+    font-size: 0.85em;
+}
+
+code {
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-dim);
+    color: var(--df-accent, var(--accent));
+}
+
+pre {
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-dim);
+    line-height: 1.5;
+}
+
+/* a <code> inside a <pre> is the block's own text, not an inline chip */
+pre code {
+    padding: 0;
+    background: none;
+    color: inherit;
+}
+
+kbd {
+    padding: 1px 6px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-header);
+    color: var(--text);
+    font-size: 0.78em;
+}
+
+small {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ---------- layout primitives ----------
+   The four arrangements every page needs, so apps stop hand-rolling flexbox.
+   All gap-based and all collapsing on narrow viewports (see the tier below). */
+
+.df-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.df-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.df-row.gap-lg,
+.df-stack.gap-lg {
+    gap: 16px;
+}
+
+.df-row.gap-sm,
+.df-stack.gap-sm {
+    gap: 4px;
+}
+
+/* a persistent rail beside a panel: sizes to its content instead of stretching
+   to the row, and rides along at the top of its column — so it never becomes a
+   second scrolling region competing with the panel next to it */
+.df-stack.sticky {
+    align-self: start;
+    position: sticky;
+    top: 0;
+}
+
+/* pushes what follows to the far end of a row */
+.df-spacer {
+    flex: 1;
+}
+
+.df-grid {
+    display: grid;
+    gap: 10px;
+    /* fills the width with as many columns as fit — no breakpoints needed */
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+}
+
+.df-grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.df-grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.df-grid.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* the action bar above a panel: controls left, buttons pushed right */
+.df-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.df-toolbar > .df-spacer {
+    flex: 1;
+}
+
+/* ---------- table ----------
+   <div class="df-table-wrap"><table class="df-table">…</table></div>
+   The wrap is the scroll container the sticky header needs; drop it for a
+   table that should size to its content.
+     .compact  denser rows          .zebra  alternating row wash
+     .fill     stretch to the panel  th.num / td.num  right-aligned numerics */
+
+.df-table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-dim);
+}
+
+/* inside a .df-card-body.flush the card already draws the frame */
+.df-card-body.flush > .df-table-wrap {
+    border: 0;
+    border-radius: 0;
+}
+
+.df-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+/* A table at width:100% can never outgrow its scroll container, so a narrow
+   viewport squeezes the columns instead of scrolling: one long cell wraps to
+   ten lines and the columns past it are unreadable. .wide gives the table a
+   width floor so the x-axis engages; --df-table-min-width tunes it.
+
+   The floor only scrolls if the table's ancestors can shrink: a grid track or
+   flex item still on its auto minimum grows to the floor instead, and the
+   page gets the scrollbar. Give any grid track minmax(0, ...) and any
+   flex/grid item min-width: 0. Same trap for the automatic 5-column floor in
+   the 720px tier, which needs no opt-in at all. */
+.df-table.wide {
+    min-width: var(--df-table-min-width, 620px);
+}
+
+.df-table th,
+.df-table td {
+    padding: 7px 12px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.df-table.compact th,
+.df-table.compact td {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+}
+
+/* The header is the lit rung of the ladder, and it stays put while the body
+   scrolls under it — the reason the title of a table reads as a title. */
+.df-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-bottom: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.df-table tbody tr {
+    transition: background var(--df-dur-fast) var(--df-ease);
+}
+
+.df-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.df-table.zebra tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.022);
+}
+
+.df-table.zebra tbody tr:nth-child(even):hover {
+    background: var(--bg-hover);
+}
+
+.df-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* the selected row is marked by an accent edge, not a loud fill */
+.df-table tbody tr.selected {
+    background: var(--df-accent-soft, var(--accent-soft));
+    box-shadow: inset 2px 0 0 var(--df-accent, var(--accent));
+}
+
+.df-table th.num,
+.df-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-table td.df-muted {
+    color: var(--text-muted);
+}
+
+.df-table tfoot td {
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-top: 1px solid var(--border-strong);
+    border-bottom: 0;
+    font-weight: 600;
+}
+
+/* sortable headers — <druid-table sortable> sets aria-sort and the caret */
+.df-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    transition: color var(--df-dur-fast) var(--df-ease);
+}
+
+.df-table th[data-sort]:hover {
+    color: var(--text);
+}
+
+.df-table th[data-sort]::after {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 6px;
+    vertical-align: middle;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid currentColor;
+    opacity: 0;
+    transition:
+        opacity var(--df-dur) var(--df-ease),
+        transform var(--df-dur) var(--df-ease);
+}
+
+.df-table th[data-sort]:hover::after {
+    opacity: 0.35;
+}
+
+.df-table th[aria-sort="ascending"],
+.df-table th[aria-sort="descending"] {
+    color: var(--df-accent, var(--accent));
+}
+
+.df-table th[aria-sort="ascending"]::after,
+.df-table th[aria-sort="descending"]::after {
+    opacity: 1;
+}
+
+.df-table th[aria-sort="descending"]::after {
+    transform: rotate(180deg);
+}
+
+/* ---------- alert (persistent inline message) ----------
+   The standing counterpart to druids.toast(): <div class="df-alert warn">.
+   Same wash-over-surface recipe as a toast, with an accent edge on the left. */
+
+.df-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 12px;
+    margin: 0 0 10px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--text-muted);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--text);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.df-alert-title {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+
+.df-alert.accent {
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--bg-raised);
+    border-left-color: var(--accent);
+}
+
+.df-alert.ok {
+    background: linear-gradient(var(--ok-soft), var(--ok-soft)) var(--bg-raised);
+    border-left-color: var(--ok);
+}
+
+.df-alert.warn {
+    background: linear-gradient(var(--warn-soft), var(--warn-soft)) var(--bg-raised);
+    border-left-color: var(--warn);
+}
+
+.df-alert.danger {
+    background: linear-gradient(var(--danger-soft), var(--danger-soft)) var(--bg-raised);
+    border-left-color: var(--danger);
+}
+
+/* ---------- busy states ----------
+   .df-spinner is an element on its own (<span class="df-spinner">) and inherits
+   the accent; .df-skeleton is a placeholder block sized by the app. */
+
+.df-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    vertical-align: -2px;
+    border: 2px solid var(--df-accent-soft, var(--accent-soft));
+    border-top-color: var(--df-accent, var(--accent));
+    border-radius: 50%;
+    animation: df-spin 0.7s linear infinite;
+}
+
+.df-spinner.small {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+}
+
+.df-spinner.large {
+    width: 22px;
+    height: 22px;
+    border-width: 3px;
+}
+
+@keyframes df-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.df-skeleton {
+    /* a sheen travelling across a dim block — content is coming */
+    background: linear-gradient(90deg, var(--bg-dim) 25%, var(--bg-header) 50%, var(--bg-dim) 75%);
+    background-size: 300% 100%;
+    border-radius: var(--radius-sm);
+    animation: df-shimmer 1.4s ease-in-out infinite;
+    /* so a bare <div class="df-skeleton"> is visible without sizing */
+    min-height: 12px;
+}
+
+@keyframes df-shimmer {
+    0% {
+        background-position: 150% 0;
+    }
+    100% {
+        background-position: -150% 0;
+    }
+}
+
+/* ---------- empty state ----------
+   <div class="df-empty"><p class="df-empty-title">No models</p>
+     <p class="df-hint">Pull one to get started.</p></div>
+   The brand leaf sits behind it as a faint watermark — the "nothing here yet"
+   marker, keyed off the accent so it belongs to the app's theme. */
+
+.df-empty {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-height: 120px;
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.df-empty::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 96px;
+    height: 96px;
+    transform: translate(-50%, -50%);
+    background: var(--df-accent, var(--accent));
+    /* the brand leaf, masked so it takes the accent; kept very faint */
+    mask: var(--df-empty-mark) center / contain no-repeat;
+    -webkit-mask: var(--df-empty-mark) center / contain no-repeat;
+    opacity: 0.06;
+    pointer-events: none;
+    animation: df-breathe 6s ease-in-out infinite;
+}
+
+.df-empty > * {
+    position: relative;
+}
+
+.df-empty-title {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* slow swell, so an idle panel is never completely static */
+@keyframes df-breathe {
+    0%,
+    100% {
+        opacity: 0.05;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.1;
+        transform: translate(-50%, -50%) scale(1.04);
+    }
+}
+
+/* ---------- entrance animations ----------
+   Opt-in utilities for content the app swaps in (a tab panel, a fresh row).
+   Both run off the shared motion tokens, so they vanish with reduced motion. */
+
+.df-animate-in {
+    animation: df-fade-in var(--df-dur-slow) var(--df-ease) both;
+}
+
+.df-animate-rise {
+    animation: df-rise var(--df-dur-slow) var(--df-ease) both;
+}
+
+@keyframes df-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes df-rise {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+/* ---------- login (light DOM, rendered by <druid-login-card>) ---------- */
+
+.df-login-body {
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.df-login-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: min(340px, 92vw);
+    padding: 30px 34px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.df-login-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.df-login-brand h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+}
+
+.df-login-brand .brand-leaf {
+    width: 34px;
+    height: 34px;
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent));
+    flex-shrink: 0;
+}
+
+.df-login-subtitle {
+    margin: 0 0 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.df-login-card .df-form-error {
+    padding: 8px 12px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+}
+
+.df-login-card label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text);
+}
+
+.df-login-card input {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 1rem;
+}
+
+.df-login-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+    font: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.df-login-submit:hover {
+    filter: brightness(1.12);
+}
+
+/* ---------- narrow viewports ----------
+   Two tiers. At 900px the *shell model* changes: a fixed-height page is right
+   on a desktop and wrong on a phone, where every panel would be squeezed into
+   what is left after the navbar and the footer — a tab showing a sliver of
+   itself, with the rest unreachable. So the page goes back to document flow and
+   the document scrolls. At 720px only the density gives.
+   Opt out of the flow tier with <body class="df-shell-fixed"> (kiosk apps that
+   really do want a fixed viewport at every width). */
+
+@media (max-width: 900px) {
+    body:not(.df-shell-fixed) {
+        height: auto;
+        min-height: 100dvh;
+    }
+
+    body:not(.df-shell-fixed) main {
+        overflow: visible;
+    }
+
+    /* panels size to their content and let the page scroll past them, instead
+       of each becoming its own little scrolling window */
+    body:not(.df-shell-fixed) .df-tab-panel.active,
+    body:not(.df-shell-fixed) [data-subtab-panel].active {
+        flex: 0 0 auto;
+    }
+
+    body:not(.df-shell-fixed) .df-tab-panel.scroll.active,
+    body:not(.df-shell-fixed) [data-subtab-panel].scroll.active,
+    body:not(.df-shell-fixed) .df-card-body.scroll {
+        overflow-y: visible;
+    }
+
+    body:not(.df-shell-fixed) .df-card.fill,
+    body:not(.df-shell-fixed) .df-card.fit {
+        flex: 0 0 auto;
+        max-height: none;
+    }
+
+    /* a rail stacks above the content it flanked; sticky would park it over
+       the page it is scrolling with */
+    body:not(.df-shell-fixed) .df-stack.sticky {
+        position: static;
+    }
+
+    /* the one thing that must stay capped: an unbounded log would otherwise
+       make the document as tall as its history */
+    body:not(.df-shell-fixed) druid-log-view {
+        max-height: 70dvh;
+    }
+}
+
+@media (max-width: 720px) {
+    main {
+        padding: 16px 12px;
+    }
+
+    .df-grid.cols-2,
+    .df-grid.cols-3,
+    .df-grid.cols-4 {
+        grid-template-columns: 1fr;
+    }
+
+    /* a toolbar's trailing buttons wrap to their own full-width line instead
+       of squeezing the control before them */
+    .df-toolbar > .df-spacer {
+        flex-basis: 100%;
+        height: 0;
+    }
+
+    .df-card-header,
+    .df-card-footer {
+        padding: 8px 10px;
+    }
+
+    .df-card-body {
+        padding: 10px;
+    }
+
+    .df-table th,
+    .df-table td {
+        padding: 6px 8px;
+    }
+
+    /* past four columns a squeezed table is unreadable, so scroll it instead —
+       the same floor .df-table.wide asks for, applied where it always hurts.
+       Ancestors must be able to shrink — see .df-table.wide above. */
+    .df-table:has(> thead > tr > th:nth-child(5)) {
+        min-width: var(--df-table-min-width, 620px);
+    }
+
+    .df-stat-number {
+        font-size: 1.5rem;
+    }
+
+    dialog.df-dialog {
+        padding: 18px 16px;
+    }
+
+    .df-toast-stack {
+        right: 10px;
+        left: 10px;
+        bottom: 10px;
+    }
+
+    .df-toast {
+        max-width: none;
+    }
+}

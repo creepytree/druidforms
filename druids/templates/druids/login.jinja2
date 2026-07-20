@@ -1,0 +1,8 @@
+{% extends "druids/base.jinja2" %}
+{% block title %}{{ druids.brand|lower }} &middot; login{% endblock %}
+{% block body_class %}df-login-body{% endblock %}
+{% block body %}
+    <druid-login-card brand="{{ druids.brand }}"
+                      action="{{ base_path }}/login"
+                      {% if error %}error="{{ error }}"{% endif %}></druid-login-card>
+{% endblock %}

@@ -1,0 +1,14 @@
+{
+    "default": "blue",
+    "accents": [
+        { "name": "teal", "hex": "#3fbdbd" },
+        { "name": "blue", "hex": "#5b8def" },
+        { "name": "purple", "hex": "#9d7bef" },
+        { "name": "pink", "hex": "#ffa6c9" },
+        { "name": "red", "hex": "#ff355e" },
+        { "name": "orange", "hex": "#ffa800" },
+        { "name": "yellow", "hex": "#ffee8c" },
+        { "name": "lime", "hex": "#ccff00" },
+        { "name": "green", "hex": "#80ef80" }
+    ]
+}
