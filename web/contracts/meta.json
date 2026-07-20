@@ -1,0 +1,492 @@
+{
+    "_note": "Curated companion to gen-contracts.mjs. Holds only the facts that are NOT statically derivable from web/src: event detail TYPES, gotchas, a11y notes, canonical examples, `since` versions, and token roles. Mechanical facts (attributes, event names, methods, slots, consumed CSS vars, API signatures) are extracted from source and must not be duplicated here.",
+    "since": {
+        "druid-navbar": "1.0.0",
+        "druid-tabs": "1.0.0",
+        "druid-tab": "1.0.0",
+        "druid-button": "1.0.0",
+        "druid-accent-picker": "1.0.0",
+        "druid-footer": "1.0.0",
+        "druid-login-card": "1.0.0",
+        "druid-textarea": "1.0.0",
+        "druid-log-view": "1.0.0",
+        "druid-progress": "1.0.0",
+        "druid-search": "1.0.0",
+        "druid-chat-message": "1.0.0",
+        "druid-select": "1.0.0",
+        "druid-subtabs": "1.0.0",
+        "druid-icon": "1.0.1",
+        "druid-icon-button": "1.0.1",
+        "druid-tooltip": "1.0.3",
+        "druid-popover": "1.0.3",
+        "druids.toast": "1.0.0",
+        "druids.confirm": "1.0.1",
+        "druids.prompt": "1.0.1",
+        "druids.modal": "1.0.3",
+        "druids.registerIcon": "1.0.1",
+        "druids.registerIcons": "1.0.1",
+        "druids.applyAccent": "1.0.0",
+        "druids.startRainbow": "1.0.0",
+        "druids.stopRainbow": "1.0.0",
+        "druids.ACCENTS": "1.0.0",
+        "druid-table": "1.0.5",
+        "druid-flavor-picker": "1.0.10",
+        "druids.applyFlavor": "1.0.10",
+        "druids.clearFlavor": "1.0.10",
+        "druids.FLAVORS": "1.0.10"
+    },
+    "components": {
+        "druid-popover": {
+            "summary": "Anchored panel primitive: hangs arbitrary content off a trigger in the top layer, with light-dismiss and same-trigger toggle.",
+            "slots": {
+                "trigger": "The anchor element; clicking it toggles the panel.",
+                "default": "The panel content (any markup)."
+            },
+            "events": {
+                "popover-toggle": {
+                    "open": "boolean"
+                }
+            },
+            "css_vars": {
+                "--df-accent": "panel border color (override for a quiet-at-rest / accent-when-open trigger)",
+                "--bg-raised": "panel background",
+                "--radius": "panel corner radius",
+                "--shadow": "panel elevation shadow"
+            },
+            "a11y": "Panel is role=dialog; light-dismiss on outside-click and Esc (scroll never dismisses); same-trigger click toggles.",
+            "example": "<druid-popover placement=\"bottom-end\">\n  <druid-button slot=\"trigger\" variant=\"outline\">Quants ▾</druid-button>\n  <div>…panel content…</div>\n</druid-popover>",
+            "gotchas": [
+                "placement splits on '-': base edge (top|bottom|left|right) + align (start|end). bottom-start aligns the panel's LEFT edge to the trigger; bottom-end aligns its RIGHT edge. Bare 'left'/'right' default to -start.",
+                "Panel is position:fixed in the top layer (native popover), so it escapes overflow/scroll clipping.",
+                "Tracks the trigger on scroll and resize (capture-phase scroll listener catches inner scroll containers too); it repositions rather than dismissing.",
+                "It aligns to the border-box of whatever you put in slot=trigger. A druid-button's inner <button> sizes to its content and won't fill a forced-wider host width, so give the trigger its natural size or the alignment will look offset.",
+                "Flips to the opposite side when short on viewport space, then clamps into the viewport.",
+                "Placement is druids.anchor(); use that directly to build an overlay control of your own that must escape a clipping ancestor."
+            ]
+        },
+        "druid-tooltip": {
+            "summary": "Themed hover/focus bubble that wraps the element it describes; works over disabled controls where native title is unreliable.",
+            "slots": {
+                "default": "The element being described (the hover/focus target)."
+            },
+            "css_vars": {
+                "--bg-raised": "bubble background",
+                "--border": "bubble border",
+                "--radius": "bubble corner radius",
+                "--shadow": "bubble shadow",
+                "--text": "bubble text color"
+            },
+            "a11y": "Bubble is role=tooltip; shows on hover and focus-within, Esc hides it.",
+            "example": "<druid-tooltip text=\"Locked while a model is pinned\">\n  <druid-textarea disabled></druid-textarea>\n</druid-tooltip>",
+            "gotchas": [
+                "Empty or cleared `text` hides the bubble entirely — drive a conditional tooltip by setting/clearing `text` (or set `disabled`).",
+                "Bubble renders in the top layer, so scroll/overflow ancestors never clip it; it flips to stay on-screen.",
+                "Because the wrapper owns the hover, it fires over a disabled child control (unlike native title).",
+                "The top layer is the top layer of the tooltip's own document: inside a tiny iframe (a 40px extension toolbar) the bubble has nowhere to go and covers its neighbours. There, rely on the native title the control's `label` already sets — the browser draws that outside the frame."
+            ]
+        },
+        "druid-button": {
+            "attribute_notes": {
+                "variant": "soft / soft-danger added in 1.0.2; outline added in 1.0.3. outline = --df-select-bg background + --df-accent border.",
+                "loading": "shows a spinner and makes the control inert (clicks and submits are dropped); combine with your own request handling."
+            },
+            "events": {
+                "toggle-change": {
+                    "active": "boolean"
+                }
+            },
+            "slots": {
+                "default": "Button label / content."
+            },
+            "css_vars": {
+                "--df-accent": "primary fill, active/hover border, soft text",
+                "--df-accent-soft": "soft variant wash",
+                "--df-select-bg": "outline variant background",
+                "--danger": "danger / soft-danger color",
+                "--danger-soft": "soft-danger wash",
+                "--border": "default border",
+                "--bg-raised": "default background",
+                "--bg-hover": "hover fill",
+                "--focus-ring": "keyboard focus halo"
+            },
+            "a11y": "aria-pressed reflects `active` when `toggle` is set; type=submit forwards to the closest light-DOM form.",
+            "example": "<druid-button variant=\"primary\" type=\"submit\">Save</druid-button>\n<druid-button variant=\"outline\">Quants ▾</druid-button>",
+            "gotchas": [
+                "variant=outline is the dropdown-trigger look: --df-select-bg background with a --df-accent border at rest.",
+                "Recolor any variant with a df-ok / df-warn / df-danger class, which repoint --df-accent / --df-accent-soft.",
+                "The inner <button> sizes to its content; a forced width on the host does not stretch it.",
+                "loading does not disable the underlying button element — it suppresses the click in JS — so a form still sees the control, it just cannot be re-submitted."
+            ]
+        },
+        "druid-icon-button": {
+            "events": {
+                "toggle-change": {
+                    "active": "boolean"
+                }
+            },
+            "slots": {
+                "default": "Inline <svg> to render when `icon` is not set."
+            },
+            "css_vars": {
+                "--df-accent": "active/hover accent",
+                "--df-accent-soft": "soft variant wash",
+                "--danger": "soft-danger color",
+                "--danger-soft": "soft-danger wash",
+                "--df-icon-btn-color": "resting icon color override",
+                "--df-icon-btn-border": "border override",
+                "--df-icon-btn-hover-bg": "hover background override",
+                "--df-icon-btn-hover-color": "hover icon color override",
+                "--focus-ring": "keyboard focus halo"
+            },
+            "a11y": "Set `label` for the aria-label; renders as an <a> when `href` is set.",
+            "example": "<druid-icon-button icon=\"pencil\" label=\"Edit\" toggle></druid-icon-button>\n<druid-icon-button variant=\"soft\" class=\"df-warn\" icon=\"upload\" label=\"Unload\"></druid-icon-button>",
+            "gotchas": [
+                "Prefer `icon=\"name\"` (a registered icon) over slotting an <svg>; the icon must be registered first via druids.registerIcons.",
+                "soft / soft-danger mirror druid-button: colored wash at rest, border on hover; pair soft with a df-* class to retint.",
+                "loading does not disable the underlying button element — it suppresses the click in JS — so a form still sees the control, it just cannot be re-submitted."
+            ],
+            "attribute_notes": {
+                "loading": "shows a spinner and makes the control inert (clicks and submits are dropped); combine with your own request handling."
+            }
+        },
+        "druid-select": {
+            "events": {
+                "change": {
+                    "value": "string"
+                }
+            },
+            "slots": {
+                "default": "Light-DOM <option> children (read and watched; JS-populated selects work)."
+            },
+            "css_vars": {
+                "--df-select-bg": "trigger + menu background (defaults to --bg)",
+                "--df-accent": "focus/open border and selected item",
+                "--df-accent-soft": "selected item wash",
+                "--radius": "corner radius",
+                "--shadow": "menu shadow"
+            },
+            "a11y": "Trigger is aria-haspopup=listbox with aria-expanded; menu is role=listbox, items role=option.",
+            "example": "<druid-select name=\"model\" placeholder=\"Choose model\">\n  <option value=\"a\">Model A</option>\n  <option value=\"b\">Model B</option>\n</druid-select>",
+            "gotchas": [
+                "Set `name` to get a hidden light-DOM input so classic form POSTs carry the value.",
+                "Options are declared as <option> children, never rendered directly; they are watched via MutationObserver.",
+                "<druid-select> is not a labelable element, so a wrapping <label> associates with nothing (label.control is null). Use a <div class=\"df-field\"> with a <span class=\"df-label\">, and set label=\"…\" on the select — it becomes the trigger's aria-label.",
+                "The menu renders in the top layer (native popover, placed by druids.anchor()), so an overflow:auto or overflow:hidden ancestor — a scrolling table, a .df-dialog, a .df-card — cannot clip it. It is display:none when closed, so it never inflates the scroll height of its container. Scrolling repositions the menu rather than closing it.",
+                "Narrow hosts: the select shrinks with its container and ellipsizes the label (130px is a floor only when there is room); the menu is capped at the viewport width and ellipsizes long options, with the full text in each row's title.",
+                "Keyboard: ArrowDown opens the closed select; while open, arrows move the highlight, Enter picks it, Esc / Tab close."
+            ],
+            "attribute_notes": {
+                "value": "Also a live property: read `.value` for the current selection, assign it to select programmatically (no `change` fires for a programmatic set). A value matching no option shows the placeholder — unless `free` is set, which shows the raw value.",
+                "filter": "Adds a filter box on top of the menu: case-insensitive match on label and value, prefix matches first, at most 100 rows rendered (a note counts the rest). Arrow keys move the highlight, Enter picks it.",
+                "free": "With `filter`: Enter commits the typed text even when it matches no option (an exact match is still picked as that option)."
+            },
+            "parts": {
+                "trigger": "the closed control (button)",
+                "menu": "the top-layer panel",
+                "filter": "the filter input (only with `filter`)",
+                "item": "one option row"
+            }
+        },
+        "druid-tabs": {
+            "events": {
+                "tab-change": {
+                    "panel": "string"
+                }
+            },
+            "a11y": "Document-level tab strip; you own the .df-tab-panel[data-tab-panel] sections and toggle .active.",
+            "gotchas": [
+                "The strip scrolls horizontally inside itself when the tabs do not fit, so it never widens the page on a narrow viewport — in the navbar or placed in content alike."
+            ],
+            "example": "<druid-tabs active=\"home\">\n  <druid-tab panel=\"home\">Home</druid-tab>\n  <druid-tab panel=\"logs\">Logs</druid-tab>\n</druid-tabs>\n<section class=\"df-tab-panel active\" data-tab-panel=\"home\">…</section>"
+        },
+        "druid-subtabs": {
+            "events": {
+                "subtab-change": {
+                    "panel": "string"
+                },
+                "tab-change": {
+                    "panel": "string"
+                }
+            },
+            "slots": {
+                "tab": "The <druid-tab> pill buttons.",
+                "default": "The [data-subtab-panel] panels."
+            },
+            "example": "<druid-subtabs active=\"models\" heading=\"Models\" boxed>\n  <druid-tab slot=\"tab\" panel=\"models\">Models</druid-tab>\n  <div data-subtab-panel=\"models\">…</div>\n</druid-subtabs>",
+            "gotchas": [
+                "Scoped to itself (unlike druid-tabs), so it nests inside a page tab.",
+                "Emits its own subtab-change plus a bubbling tab-change so visibility-aware children (druid-log-view) pause/resume."
+            ]
+        },
+        "druid-search": {
+            "events": {
+                "search": {
+                    "value": "string"
+                }
+            },
+            "example": "<druid-search placeholder=\"Filter notes\" debounce=\"150\"></druid-search>",
+            "gotchas": [
+                "Light-DOM input; fires `search` with the current value while typing, debounced by `debounce` ms."
+            ]
+        },
+        "druid-log-view": {
+            "a11y": "Self-polling log table; polls only while visible.",
+            "example": "<druid-log-view src=\"/api/log\" poll=\"5\" boxed heading=\"Application Log\"></druid-log-view>",
+            "gotchas": [
+                "src returns JSON: a bare array or {entries:[...]} of {time,level,source,message} or {raw}.",
+                "poll is in seconds (0 = off); boxed paints a raised header over a base-shade body (--df-panel-header-bg / --df-panel-body-bg)."
+            ]
+        },
+        "druid-chat-message": {
+            "slots": {
+                "default": "Message content.",
+                "actions": "Row of icon-buttons (hidden when empty)."
+            },
+            "example": "<druid-chat-message sender=\"assistant\" label=\"llama3\">\n  Hi there\n  <druid-icon-button slot=\"actions\" circle small icon=\"copy\" label=\"Copy\"></druid-icon-button>\n</druid-chat-message>\n<druid-chat-message sender=\"assistant\" streaming></druid-chat-message>",
+            "gotchas": [
+                "User bubbles (sender=user) auto-tint slotted icon-buttons to the accent.",
+                "The actions row is sized for `small circle` icon-buttons; larger buttons overflow it.",
+                "Clear `streaming` when the turn is done — that is what reveals the actions."
+            ],
+            "attribute_notes": {
+                "streaming": "The reply is still arriving: shows <druid-dots> (look=classic while the bubble has no text yet, an inline smooth pulse once text has come in) and hides the actions slot until cleared."
+            }
+        },
+        "druid-textarea": {
+            "example": "<druid-textarea name=\"prompt\" rows=\"4\" autosize placeholder=\"System prompt…\"></druid-textarea>",
+            "gotchas": [
+                "Light DOM, so it posts in normal forms and autofills. maxlength -1 = no limit; autosize grows to content."
+            ]
+        },
+        "druid-icon": {
+            "css_vars": {},
+            "example": "<druid-icon name=\"rocket\" size=\"34px\"></druid-icon>",
+            "gotchas": [
+                "The framework ships NO icons; register them once with druids.registerIcons({name: svg}). Unknown names render nothing.",
+                "Inherits currentColor and sizes in em; set `size` for a one-off."
+            ]
+        },
+        "druid-progress": {
+            "example": "<druid-progress value=\"40\" max=\"100\"></druid-progress>",
+            "gotchas": [
+                "indeterminate (boolean) animates an accent bar with no value."
+            ]
+        },
+        "druid-navbar": {
+            "slots": {
+                "default": "Tabs.",
+                "actions": "Right-side buttons."
+            },
+            "gotchas": [
+                "Usually rendered by base.jinja2 from the Druids object; brand + logout-href attributes."
+            ]
+        },
+        "druid-accent-picker": {
+            "example": "<druid-accent-picker></druid-accent-picker>",
+            "gotchas": [
+                "No attributes; place in the navbar actions slot. Drives druids.applyAccent / rainbow."
+            ]
+        },
+        "druid-footer": {
+            "gotchas": [
+                "Rendered by base.jinja2; brand, version, author, github attributes."
+            ]
+        },
+        "druid-login-card": {
+            "gotchas": [
+                "Light-DOM, form-participating login form rendered by the framework login page; brand, action, error, subtitle."
+            ]
+        },
+        "druid-tab": {
+            "example": "<druid-tab panel=\"logs\">Logs</druid-tab>",
+            "gotchas": [
+                "A pill inside druid-tabs (panel + reflected active) or slot=tab inside druid-subtabs."
+            ]
+        },
+        "druid-table": {
+            "since": "1.0.5",
+            "summary": "Sorting and live filtering for a plain light-DOM table (slotted, never rebuilt).",
+            "slots": {
+                "default": "the app's own <table>, normally <table class=\"df-table\">"
+            },
+            "events": {
+                "table-sort": {
+                    "key": "string — the sorted column's data-key, else its header text",
+                    "direction": "\"asc\" | \"desc\""
+                },
+                "table-filter": {
+                    "value": "string — the current query",
+                    "visible": "number — rows still shown"
+                }
+            },
+            "attribute_notes": {
+                "sort": "column key to sort by: a <th>'s data-key, else its trimmed header text.",
+                "filter": "the active query; set it from the app to filter without the built-in box."
+            },
+            "css_vars": {
+                "--df-panel-header-bg": "header bar of the boxed table",
+                "--df-panel-body-bg": "table well behind the rows",
+                "--df-select-bg": "filter input background",
+                "--focus-ring": "filter input focus halo"
+            },
+            "a11y": "Sorted headers carry aria-sort=ascending|descending; the filter input is labelled from search-placeholder.",
+            "example": "<druid-table sortable searchable heading=\"Models\" boxed>\n  <table class=\"df-table zebra\">\n    <thead><tr><th>Name</th><th class=\"num\" data-key=\"size\">Size</th><th data-sort=\"none\">Actions</th></tr></thead>\n    <tbody><tr><td>gemma</td><td class=\"num\" data-value=\"8100\">8.1 GB</td><td><druid-button>run</druid-button></td></tr></tbody>\n  </table>\n</druid-table>",
+            "gotchas": [
+                "The table is slotted light DOM: style it with .df-table and render its rows server-side as usual. The component only reorders <tr> nodes and toggles their hidden flag.",
+                "Sorting compares a cell's data-value when present, else its text; two values that both parse as numbers compare numerically. Use data-value for anything formatted (\"8.1 GB\", a date).",
+                "<th data-sort=\"none\"> opts a column out of sorting (action columns).",
+                "Rows added or replaced later are picked up automatically by a MutationObserver; call refresh() only if you mutate rows in a way that does not touch the DOM.",
+                "Sticky headers and the scroll container come from .df-table / .df-table-wrap in druids.css, not from this component.",
+                "A .df-table is width:100%, so it can never outgrow the scroll container and a narrow viewport squeezes the columns. Add class \"wide\" to the table (or tune --df-table-min-width) to give it a width floor and get horizontal scrolling; tables with 5+ columns get that floor automatically under 720px.",
+                "The scroll container only engages if the table's ancestors can shrink: give any grid track minmax(0, ...) and any flex/grid item min-width: 0, otherwise the ancestor grows to the table's floor and the page gets the horizontal scrollbar instead. Applies to the automatic 5+-column floor too, which needs no opt-in."
+            ]
+        },
+        "druid-flavor-picker": {
+            "example": "<druid-flavor-picker></druid-flavor-picker>",
+            "gotchas": [
+                "No attributes; place in the navbar actions slot (the navbar renders one itself, left of the accent picker).",
+                "Flavor is the hue of the *neutral* surfaces, not the accent: it rewrites --flavor-hue / --flavor-on on :root, which moves every surface, line and text token (--bg-dim … --text-faint) together.",
+                "Swatch names are the accent palette's; the extra 'neutral' swatch sets --flavor-on to 0 for a pure grey base."
+            ]
+        },
+        "druid-dots": {
+            "summary": "Three-dot waiting animation — \"something is being produced\" (a streaming reply, a model loading), where .df-spinner means \"a request is in flight\".",
+            "css_vars": {
+                "--df-dots-on": "the lit dot (classic) and every dot (smooth); defaults to --accent",
+                "--df-dots-off": "the resting dots in classic (smooth rests at a lower opacity instead); defaults to --border-strong",
+                "--accent": "default lit colour",
+                "--border-strong": "default resting colour"
+            },
+            "attribute_notes": {
+                "variant": "flash (one light runs left-right-back), fade (dots fade in turn), wave (dots hop in turn), pulse (each dot swells in turn). Empty picks one at random per instance.",
+                "look": "smooth: 6px dots, 28px wide, 1em tall — sits inline next to text and animates transform/opacity only, so it stays smooth while a stream repaints the page. classic: 10px dots, 50px wide, box-shadow animation — the larger, livelier one for an empty bubble."
+            },
+            "a11y": "role=status with aria-label=\"waiting\". prefers-reduced-motion stops the animation and leaves resting dots.",
+            "example": "<druid-dots variant=\"pulse\"></druid-dots>\n<druid-dots look=\"classic\"></druid-dots>",
+            "gotchas": [
+                "look=classic draws wave and pulse 20px above its own box and needs about 25px of room above the baseline — give it a block of its own, not a line of text.",
+                "druid-chat-message's `streaming` already places one; reach for the element directly only outside a bubble."
+            ]
+        }
+    },
+    "apis": {
+        "toast": {
+            "summary": "Show a stacked, auto-dismissing notification.",
+            "example": "druids.toast(\"Saved\", \"ok\");\ndruids.toast(\"That failed\", \"danger\", 5000);"
+        },
+        "confirm": {
+            "summary": "Promise-returning yes/no modal on the .df-dialog chrome. Resolves false on cancel or dismiss.",
+            "example": "druids.confirm(\"Delete this model?\", { danger: true }).then(ok => { if (ok) … });"
+        },
+        "prompt": {
+            "summary": "Promise-returning text-input modal. Resolves the string on OK, or null on cancel/dismiss.",
+            "example": "druids.prompt(\"Pin as:\", { value: current }).then(name => { if (name !== null) … });"
+        },
+        "form": {
+            "summary": "Promise-returning multi-field dialog — prompt() for more than one input. Resolves an object keyed by field `name` (number fields resolve numbers, or null when left blank; checkboxes booleans; everything else strings), or null on cancel/dismiss. `required`, the control's own constraints (min/max/step, type=email/url) and a per-field `validate` returning a message hold the dialog open and tint the field.",
+            "example": "druids.form(\"Pin this model:\", { title: \"Pin\", fields: [\n  { name: \"num_ctx\", label: \"Context length\", type: \"number\", min: 1, hint: \"Tokens.\" },\n  { name: \"kind\", label: \"Model type\", type: \"select\", options: [{ value: \"\", label: \"Auto-detect\" }] },\n], confirmLabel: \"Pin\" }).then(values => { if (values) pin(values.num_ctx, values.kind); });",
+            "gotchas": [
+                "Field `type` picks the control: \"select\" renders a <druid-select> (pass `options`), \"textarea\" a <textarea>, \"checkbox\" a checkbox row, anything else an <input type=…>.",
+                "A field's `hint` is also its error slot: a validation message replaces it and .df-field.invalid tints both. A field without a hint gets one created on demand.",
+                "A blank `number` field resolves null, not 0 — \"left blank\" stays distinguishable from a typed zero. Mark it `required` if blank is not allowed.",
+                "min/max/step are enforced at submit via the control's constraint validation (the browser's message lands in the hint slot); `validate` runs only after they pass.",
+                "Enter submits from any single-line input; Esc and Cancel resolve null. Use modal() instead when the dialog needs arbitrary content rather than fields.",
+                "An empty `message` renders no body paragraph, so a title-only dialog carries no blank line."
+            ]
+        },
+        "modal": {
+            "summary": "Open a modal with arbitrary content on the .df-dialog chrome (backdrop / Esc / focus-trap); returns the <dialog>, already open.",
+            "example": "druids.modal({ title: \"Repo quants\", content: node, actions: [{ label: \"Close\" }] });"
+        },
+        "registerIcon": {
+            "summary": "Register one icon by name for <druid-icon> / icon=.",
+            "example": "druids.registerIcon(\"pin\", '<svg viewBox=\"0 0 24 24\" …></svg>');"
+        },
+        "registerIcons": {
+            "summary": "Register a map of {name: svgString} for <druid-icon> / icon=.",
+            "example": "druids.registerIcons({ pin: '<svg…>', x: '<svg…>' });"
+        },
+        "applyAccent": {
+            "summary": "Set the app accent color (hex); persisted per app.",
+            "example": "druids.applyAccent(\"#5b8def\");"
+        },
+        "startRainbow": {
+            "summary": "Start the animated cycling accent."
+        },
+        "stopRainbow": {
+            "summary": "Stop the animated cycling accent."
+        },
+        "ACCENTS": {
+            "summary": "Array of preset accent hex values (the palette)."
+        },
+        "applyFlavor": {
+            "summary": "Tint the neutral surfaces with a palette hue, by swatch name (or \"neutral\" for a grey base). Unknown names are ignored; this only paints — <druid-flavor-picker> also persists.",
+            "example": "druids.applyFlavor(\"teal\");\ndruids.applyFlavor(\"neutral\");"
+        },
+        "clearFlavor": {
+            "summary": "Drop the flavor overrides so druids.css owns the surfaces again (the stock blue-grey).",
+            "example": "druids.clearFlavor();"
+        },
+        "FLAVORS": {
+            "summary": "Array of flavor hue names, in palette order (the accent swatch names)."
+        },
+        "anchor": {
+            "summary": "Place a panel against an anchor element: position:fixed, flips when short of room, clamped and width-capped to the viewport, follows the anchor on scroll/resize; a panel with the `popover` attribute is also lifted into the top layer. The primitive behind druid-popover and druid-select — use it for an overlay control of your own that must escape a .df-card (overflow: hidden) or a transformed ancestor. Returns { update(), release() }.",
+            "example": "menu.setAttribute(\"popover\", \"manual\");\nconst pin = druids.anchor(menu, input, { placement: \"bottom-start\", matchWidth: true });\n/* after the menu's content changed */ pin.update();\n/* on close */ pin.release();"
+        }
+    },
+    "tokens": {
+        "surfaces": {
+            "--flavor-hue": "oklch hue angle of the neutral surfaces (the flavor axis)",
+            "--flavor-on": "flavor strength 0..1 — scales surface chroma; 0 is a pure grey base",
+            "--bg-dim": "sunken well: input, table and log surfaces cut into the page",
+            "--bg": "base app background",
+            "--bg-raised": "raised card / panel surface",
+            "--bg-header": "header bar of a raised thing (card, panel, table head) — the lightest resting shade",
+            "--bg-hover": "hover-state fill (transient only, never a resting surface)",
+            "--df-panel-header-bg": "header bar override (.df-card, druid-log-view, druid-subtabs, druid-table)",
+            "--df-panel-body-bg": "panel body override",
+            "--df-select-bg": "select trigger + outline-button background (defaults to --bg)"
+        },
+        "lines_text": {
+            "--border": "hairline borders",
+            "--border-strong": "edges that must read as edges (table rules, sticky header underline)",
+            "--text": "primary text",
+            "--text-muted": "secondary / placeholder text",
+            "--text-faint": "watermarks and disabled glyphs"
+        },
+        "accent": {
+            "--accent": "app accent",
+            "--accent-soft": "accent wash (0.18 alpha)",
+            "--df-accent": "component accent override (defaults to --accent; df-* classes repoint it)",
+            "--df-accent-soft": "component accent wash override"
+        },
+        "status": {
+            "--ok": "success color",
+            "--ok-soft": "success wash",
+            "--warn": "warning color",
+            "--warn-soft": "warning wash",
+            "--danger": "danger color",
+            "--danger-soft": "danger wash"
+        },
+        "shape": {
+            "--df-table-min-width": "width floor of a .df-table.wide, and of any table with 5+ columns under 720px, so the wrap scrolls horizontally instead of squeezing (defaults to 620px)",
+            "--radius": "corner radius",
+            "--radius-sm": "tighter radius for dense chrome (inputs, cells, chips)",
+            "--shadow": "elevation shadow",
+            "--df-main-pad": "padding of the page's <main> (defaults to 30px 22px, 16px 12px under 720px); df-shell-compact sets it to 10px",
+            "--df-main-max": "max width of the page's <main> (defaults to 1100px); df-shell-compact sets none"
+        },
+        "focus": {
+            "--focus-ring": "box-shadow halo applied on :focus-visible across light and shadow DOM",
+            "--glow": "the same halo as a resting glow for lit elements"
+        },
+        "motion": {
+            "--df-dur-fast": "pointer feedback (0.12s)",
+            "--df-dur": "standard transition (0.2s)",
+            "--df-dur-slow": "entrances and overlays (0.42s)",
+            "--df-ease": "shared easing curve — quick out, unhurried settle",
+            "--df-empty-mark": "brand leaf as a CSS mask url, published by theme.ts for .df-empty"
+        }
+    }
+}

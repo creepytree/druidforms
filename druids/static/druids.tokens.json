@@ -1,0 +1,201 @@
+{
+  "version": "1.0.12",
+  "theme": "dark-only",
+  "groups": {
+    "surfaces": [
+      {
+        "name": "--flavor-hue",
+        "role": "oklch hue angle of the neutral surfaces (the flavor axis)",
+        "default": "265"
+      },
+      {
+        "name": "--flavor-on",
+        "role": "flavor strength 0..1 — scales surface chroma; 0 is a pure grey base",
+        "default": "1"
+      },
+      {
+        "name": "--bg-dim",
+        "role": "sunken well: input, table and log surfaces cut into the page",
+        "default": "oklch(0.168 calc(0.014 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--bg",
+        "role": "base app background",
+        "default": "oklch(0.196 calc(0.015 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--bg-raised",
+        "role": "raised card / panel surface",
+        "default": "oklch(0.239 calc(0.022 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--bg-header",
+        "role": "header bar of a raised thing (card, panel, table head) — the lightest resting shade",
+        "default": "oklch(0.28 calc(0.03 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--bg-hover",
+        "role": "hover-state fill (transient only, never a resting surface)",
+        "default": "oklch(0.321 calc(0.035 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--df-panel-header-bg",
+        "role": "header bar override (.df-card, druid-log-view, druid-subtabs, druid-table)"
+      },
+      {
+        "name": "--df-panel-body-bg",
+        "role": "panel body override"
+      },
+      {
+        "name": "--df-select-bg",
+        "role": "select trigger + outline-button background (defaults to --bg)"
+      }
+    ],
+    "lines_text": [
+      {
+        "name": "--border",
+        "role": "hairline borders",
+        "default": "oklch(0.325 calc(0.031 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--border-strong",
+        "role": "edges that must read as edges (table rules, sticky header underline)",
+        "default": "oklch(0.394 calc(0.04 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--text",
+        "role": "primary text",
+        "default": "oklch(0.914 calc(0.016 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--text-muted",
+        "role": "secondary / placeholder text",
+        "default": "oklch(0.666 calc(0.03 * var(--flavor-on)) var(--flavor-hue))"
+      },
+      {
+        "name": "--text-faint",
+        "role": "watermarks and disabled glyphs",
+        "default": "oklch(0.502 calc(0.034 * var(--flavor-on)) var(--flavor-hue))"
+      }
+    ],
+    "accent": [
+      {
+        "name": "--accent",
+        "role": "app accent",
+        "default": "#5b8def"
+      },
+      {
+        "name": "--accent-soft",
+        "role": "accent wash (0.18 alpha)",
+        "default": "rgba(91, 141, 239, 0.18)"
+      },
+      {
+        "name": "--df-accent",
+        "role": "component accent override (defaults to --accent; df-* classes repoint it)"
+      },
+      {
+        "name": "--df-accent-soft",
+        "role": "component accent wash override"
+      }
+    ],
+    "status": [
+      {
+        "name": "--ok",
+        "role": "success color",
+        "default": "#4fbf82"
+      },
+      {
+        "name": "--ok-soft",
+        "role": "success wash",
+        "default": "rgba(79, 191, 130, 0.18)"
+      },
+      {
+        "name": "--warn",
+        "role": "warning color",
+        "default": "#d9a441"
+      },
+      {
+        "name": "--warn-soft",
+        "role": "warning wash",
+        "default": "rgba(217, 164, 65, 0.18)"
+      },
+      {
+        "name": "--danger",
+        "role": "danger color",
+        "default": "#ff6b6b"
+      },
+      {
+        "name": "--danger-soft",
+        "role": "danger wash",
+        "default": "rgba(255, 107, 107, 0.18)"
+      }
+    ],
+    "shape": [
+      {
+        "name": "--df-table-min-width",
+        "role": "width floor of a .df-table.wide, and of any table with 5+ columns under 720px, so the wrap scrolls horizontally instead of squeezing (defaults to 620px)"
+      },
+      {
+        "name": "--radius",
+        "role": "corner radius",
+        "default": "10px"
+      },
+      {
+        "name": "--radius-sm",
+        "role": "tighter radius for dense chrome (inputs, cells, chips)",
+        "default": "6px"
+      },
+      {
+        "name": "--shadow",
+        "role": "elevation shadow",
+        "default": "0 4px 18px rgba(0, 0, 0, 0.35)"
+      },
+      {
+        "name": "--df-main-pad",
+        "role": "padding of the page's <main> (defaults to 30px 22px, 16px 12px under 720px); df-shell-compact sets it to 10px"
+      },
+      {
+        "name": "--df-main-max",
+        "role": "max width of the page's <main> (defaults to 1100px); df-shell-compact sets none"
+      }
+    ],
+    "focus": [
+      {
+        "name": "--focus-ring",
+        "role": "box-shadow halo applied on :focus-visible across light and shadow DOM",
+        "default": "0 0 0 3px rgba(var(--accent-rgb), 0.32)"
+      },
+      {
+        "name": "--glow",
+        "role": "the same halo as a resting glow for lit elements",
+        "default": "0 0 12px rgba(var(--accent-rgb), 0.28)"
+      }
+    ],
+    "motion": [
+      {
+        "name": "--df-dur-fast",
+        "role": "pointer feedback (0.12s)",
+        "default": "0.12s"
+      },
+      {
+        "name": "--df-dur",
+        "role": "standard transition (0.2s)",
+        "default": "0.2s"
+      },
+      {
+        "name": "--df-dur-slow",
+        "role": "entrances and overlays (0.42s)",
+        "default": "0.42s"
+      },
+      {
+        "name": "--df-ease",
+        "role": "shared easing curve — quick out, unhurried settle",
+        "default": "cubic-bezier(0.22, 0.61, 0.36, 1)"
+      },
+      {
+        "name": "--df-empty-mark",
+        "role": "brand leaf as a CSS mask url, published by theme.ts for .df-empty"
+      }
+    ]
+  }
+}

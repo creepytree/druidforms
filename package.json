@@ -1,0 +1,56 @@
+{
+    "name": "druidforms",
+    "version": "1.0.12",
+    "description": "Shared design system (components, styles, theming) for Lit apps — the browser half of the druidforms package",
+    "license": "MIT",
+    "author": "bitdruid",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/creepytree/druidforms.git"
+    },
+    "type": "module",
+    "sideEffects": true,
+    "main": "./dist/druids.js",
+    "types": "./dist/types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/types/index.d.ts",
+            "default": "./dist/druids.js"
+        },
+        "./standalone": "./druids/static/druids.js",
+        "./lit-vendor.js": "./druids/static/lit-vendor.js",
+        "./druids.css": "./druids/static/druids.css",
+        "./fonts/*": "./druids/static/fonts/*",
+        "./contracts/*": "./druids/static/druids.*",
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "dist",
+        "druids/static",
+        "druids/AGENTS.md",
+        "druids/AGENTS.consumer.md",
+        "druids/README.consumer.md",
+        "druids/CHANGELOG.md"
+    ],
+    "scripts": {
+        "build": "npm run build:vendor && npm run build:standalone && npm run build:npm && npm run types && npm run contracts",
+        "build:vendor": "esbuild web/src/lit-vendor.ts --bundle --format=esm --minify --banner:js='/* lit-vendor.js - GENERATED third-party chunk: the Lit runtime (see package.json for the pinned version). Do not edit. */' --outfile=druids/static/lit-vendor.js",
+        "build:standalone": "esbuild web/src/index.ts --bundle --format=esm --minify --external:*lit-vendor.js --loader:.svg=text --banner:js='/* druids.js - GENERATED bundle of the druids components. Do not edit; run `npm run build` in the framework repo. Imports the Lit runtime from ./lit-vendor.js */' --outfile=druids/static/druids.js",
+        "build:npm": "esbuild web/src/index.ts --bundle --format=esm --minify --external:lit --external:lit/* --loader:.svg=text --banner:js='/* druidforms - GENERATED npm entry point. Do not edit; run `npm run build` in the framework repo. Lit stays external, so it dedupes with the consuming app. */' --outfile=dist/druids.js",
+        "types": "tsc -p tsconfig.types.json",
+        "contracts": "node web/scripts/gen-contracts.mjs",
+        "check": "tsc --noEmit"
+    },
+    "peerDependencies": {
+        "lit": "^3.3.3"
+    },
+    "devDependencies": {
+        "esbuild": "^0.28.1",
+        "lit": "^3.3.3",
+        "puppeteer-core": "^25.3.0",
+        "typescript": "^7.0.2"
+    },
+    "allowScripts": {
+        "esbuild@0.28.1": true
+    }
+}
