@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "druidforms"
+version = "1.0.3"
+description = "Shared design system and app shell (navbar, theming, login/session) for FastAPI apps"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "bitdruid" }]
+dependencies = ["fastapi>=0.110", "jinja2>=3.1", "python-multipart>=0.0.9"]
+
+[project.optional-dependencies]
+preview = ["uvicorn[standard]>=0.29"]
+
+[tool.setuptools.packages.find]
+include = ["druids*"]
+
+[tool.setuptools.package-data]
+druids = [
+    "AGENTS.md",
+    "AGENTS.consumer.md",
+    "README.consumer.md",
+    "CHANGELOG.md",
+    "static/**/*",
+    "templates/**/*",
+    "preview/templates/**/*",
+]

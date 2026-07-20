@@ -1,0 +1,510 @@
+{% extends "druids/base.jinja2" %}
+{% block title %}druids &middot; preview{% endblock %}
+{# always show the logout button so the navbar demo is complete; it only works with --login #}
+{% block navbar_attrs %}logout-href="{% if druids.login_enabled %}{{ base_path }}/logout{% else %}#{% endif %}"{% endblock %}
+{% block styles %}
+    <style>
+        section h2 {
+            margin: 26px 0 4px;
+            font-size: 1.05rem;
+        }
+
+        section p.hint {
+            margin: 0 0 14px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .swatches {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .swatch-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--bg-raised);
+        }
+
+        .swatch-card .chip {
+            height: 52px;
+        }
+
+        .swatch-card .meta {
+            padding: 8px 10px;
+            font-size: 0.8rem;
+        }
+
+        .swatch-card .meta code {
+            display: block;
+            color: var(--text-muted);
+        }
+
+        .demo-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 560px;
+        }
+
+        .login-demo {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+        }
+    </style>
+{% endblock %}
+{% block tabs %}
+    <druid-tabs active="controls">
+        <druid-tab panel="controls">Controls</druid-tab>
+        <druid-tab panel="feedback">Feedback</druid-tab>
+        <druid-tab panel="display">Display</druid-tab>
+        <druid-tab panel="layout">Layout</druid-tab>
+        <druid-tab panel="colors">Colors</druid-tab>
+        <druid-tab panel="login">Login</druid-tab>
+    </druid-tabs>
+{% endblock %}
+{% block actions %}
+    <druid-icon-button slot="actions" icon="pencil" label="Example action" active></druid-icon-button>
+{% endblock %}
+{% block content %}
+
+    {# ---------- Controls: things you click and type into ---------- #}
+    <section data-tab-panel="controls" class="df-tab-panel scroll active">
+        <h2>Buttons</h2>
+        <p class="hint">&lt;druid-button&gt; — variants default / primary / danger / soft / soft-danger / outline, states active / disabled</p>
+        <div class="row">
+            <druid-button>default</druid-button>
+            <druid-button variant="primary">primary</druid-button>
+            <druid-button variant="danger">danger</druid-button>
+            <druid-button variant="soft">soft</druid-button>
+            <druid-button variant="soft-danger">soft-danger</druid-button>
+            <druid-button variant="outline">outline</druid-button>
+            <druid-button active>active</druid-button>
+            <druid-button disabled>disabled</druid-button>
+            <druid-button toggle>toggle me</druid-button>
+        </div>
+        <p class="hint">color utility classes df-ok / df-warn / df-danger re-point the accent per button</p>
+        <div class="row">
+            <druid-button variant="soft" class="df-ok">soft df-ok</druid-button>
+            <druid-button variant="soft" class="df-warn">soft df-warn</druid-button>
+            <druid-button variant="primary" class="df-ok">primary df-ok</druid-button>
+            <druid-button variant="primary" class="df-warn">primary df-warn</druid-button>
+            <druid-button variant="primary" class="df-danger">primary df-danger</druid-button>
+        </div>
+
+        <h2>Icon buttons</h2>
+        <p class="hint">
+            &lt;druid-icon-button icon="…"&gt; — a registered icon name; renders a link when href is
+            set; states active / toggle and variants circle / small combine freely
+        </p>
+        <div class="row">
+            <druid-icon-button icon="pencil" label="Edit"></druid-icon-button>
+            <druid-icon-button icon="upload" label="Export" active></druid-icon-button>
+            <druid-icon-button icon="pin" label="Pin (toggle)" toggle></druid-icon-button>
+            <druid-icon-button icon="settings" label="Settings (href)" href="#"></druid-icon-button>
+            <span class="df-muted">circle:</span>
+            <druid-icon-button icon="rotate-cw" label="Refresh" circle></druid-icon-button>
+            <span class="df-muted">small:</span>
+            <druid-icon-button icon="x" label="Close" small></druid-icon-button>
+            <span class="df-muted">circle small:</span>
+            <druid-icon-button icon="trash-2" label="Delete" circle small></druid-icon-button>
+        </div>
+        <p class="hint">variant soft / soft-danger — colored wash at rest (pair soft with a df-* class to retint)</p>
+        <div class="row">
+            <druid-icon-button variant="soft" icon="cloud-download" label="Soft"></druid-icon-button>
+            <druid-icon-button variant="soft" class="df-warn" icon="upload" label="Soft warn (unload)"></druid-icon-button>
+            <druid-icon-button variant="soft-danger" icon="trash-2" label="Soft danger"></druid-icon-button>
+            <druid-icon-button variant="soft" icon="pin" label="Soft toggle" toggle></druid-icon-button>
+        </div>
+        <p class="hint">or slot your own &lt;svg&gt; when an icon isn't in the registry</p>
+        <div class="row">
+            <druid-icon-button label="Custom svg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+            </druid-icon-button>
+        </div>
+
+        <h2>Icons</h2>
+        <p class="hint">
+            &lt;druid-icon name="…"&gt; — the framework ships no icons; the app registers its own once
+            with <code>druids.registerIcons({…})</code> (this page registers the set below). Inherits
+            currentColor, sizes in em; set <code>size</code> for a one-off.
+        </p>
+        <div class="row" style="align-items: center; font-size: 1.5rem">
+            <druid-icon name="house"></druid-icon>
+            <druid-icon name="search"></druid-icon>
+            <druid-icon name="bell"></druid-icon>
+            <druid-icon name="settings"></druid-icon>
+            <druid-icon name="cloud-download"></druid-icon>
+            <druid-icon name="triangle-alert" style="color: var(--warn)"></druid-icon>
+            <druid-icon name="circle-check" style="color: var(--ok)"></druid-icon>
+            <druid-icon name="heart" style="color: var(--danger)"></druid-icon>
+            <druid-icon name="rocket" size="34px" style="color: var(--accent)"></druid-icon>
+        </div>
+
+        <h2>Form elements</h2>
+        <p class="hint">Plain light-DOM inputs styled by druids.css, plus the framework form components</p>
+        <form class="demo-form" onsubmit="return false">
+            <input type="text" placeholder="text input">
+            <druid-search placeholder="druid-search — debounced 'search' event for live filtering"></druid-search>
+            <druid-select placeholder="druid-select — framework-styled dropdown">
+                <option value="a">Option A</option>
+                <option value="b">Option B</option>
+                <option value="c">Option C</option>
+            </druid-select>
+            <druid-textarea rows="4" placeholder="druid-textarea rows=4 — default height in lines"></druid-textarea>
+            <druid-textarea rows="1" autosize placeholder="druid-textarea rows=1 autosize — grows while you type"></druid-textarea>
+            <p class="df-form-error">.df-form-error — sample of the error message style</p>
+            <div class="row">
+                <druid-button type="submit" variant="primary">submit</druid-button>
+                <druid-button>cancel</druid-button>
+            </div>
+        </form>
+
+        <h2>Tooltip</h2>
+        <p class="hint">
+            &lt;druid-tooltip text="…"&gt; — themed hover/focus bubble that wraps its target; works over a
+            <em>disabled</em> control (where native <code>title</code> is unreliable). placement top / bottom / left / right.
+        </p>
+        <div class="row" style="align-items: center; gap: 20px">
+            <druid-tooltip text="Plain top tooltip on a button">
+                <druid-button>hover me</druid-button>
+            </druid-tooltip>
+            <druid-tooltip placement="bottom" text="This field is locked while a model is pinned">
+                <druid-textarea rows="1" disabled placeholder="disabled input"></druid-textarea>
+            </druid-tooltip>
+            <druid-tooltip placement="right" text="Delete permanently">
+                <druid-icon-button icon="trash-2" label="Delete" circle></druid-icon-button>
+            </druid-tooltip>
+        </div>
+
+        <h2>Popover</h2>
+        <p class="hint">
+            &lt;druid-popover&gt; — anchored panel in the top layer (escapes overflow/scroll clipping), with
+            light-dismiss (outside-click / Esc) and same-trigger toggle. slot="trigger" is the anchor; default slot is the content.
+        </p>
+        <div class="row" style="gap: 20px; align-items: flex-start">
+            {# same trigger width + same wide panel so the alignment difference is visible:
+               start pins the panel's LEFT edge to the trigger, end pins its RIGHT edge #}
+            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: 170px">
+                <druid-popover placement="bottom-start">
+                    <druid-button slot="trigger" variant="outline">bottom-start ▾</druid-button>
+                    <div style="width: 190px">Panel's <strong>left</strong> edge aligns to the trigger — it opens rightward.</div>
+                </druid-popover>
+                <druid-popover placement="bottom-end">
+                    <druid-button slot="trigger" variant="outline">bottom-end ▾</druid-button>
+                    <div style="width: 190px">Panel's <strong>right</strong> edge aligns to the trigger — it opens leftward.</div>
+                </druid-popover>
+            </div>
+            <druid-popover placement="bottom-end">
+                <druid-button slot="trigger" variant="outline">menu (soft actions) ▾</druid-button>
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                    <druid-button variant="soft">Rename</druid-button>
+                    <druid-button variant="soft-danger">Delete</druid-button>
+                </div>
+            </druid-popover>
+            <druid-popover placement="right-start">
+                <druid-icon-button slot="trigger" icon="settings" label="Options" circle></druid-icon-button>
+                <div style="min-width: 160px">Anchored to the right of its trigger.</div>
+            </druid-popover>
+        </div>
+    </section>
+
+    {# ---------- Feedback: transient responses to an action ---------- #}
+    <section data-tab-panel="feedback" class="df-tab-panel scroll">
+        <h2>Toasts</h2>
+        <p class="hint">druids.toast(message, type, duration?) — types info / ok / warn / danger, auto-dismiss</p>
+        <div class="row">
+            <druid-button onclick="druids.toast('Heads up: something happened', 'info')">info</druid-button>
+            <druid-button onclick="druids.toast('Saved successfully', 'ok')">ok</druid-button>
+            <druid-button onclick="druids.toast('Careful with that', 'warn')">warn</druid-button>
+            <druid-button onclick="druids.toast('That failed', 'danger')">danger</druid-button>
+        </div>
+
+        <h2>Progress</h2>
+        <p class="hint">&lt;druid-progress&gt; — value/max, or indeterminate while the total is unknown</p>
+        <div class="demo-form">
+            <druid-progress value="35"></druid-progress>
+            <druid-progress value="80"></druid-progress>
+            <druid-progress indeterminate></druid-progress>
+        </div>
+
+        <h2>Dialog</h2>
+        <p class="hint">native &lt;dialog class="df-dialog"&gt; + showModal() — backdrop and Esc come from the browser</p>
+        <div class="row">
+            <druid-button onclick="document.getElementById('demo-dialog').showModal()">open dialog</druid-button>
+        </div>
+        <dialog id="demo-dialog" class="df-dialog">
+            <form method="dialog" class="demo-form">
+                <h3>Example dialog</h3>
+                <label>
+                    Name
+                    <input type="text" placeholder="text input">
+                </label>
+                <druid-textarea rows="3" placeholder="druid-textarea inside a dialog"></druid-textarea>
+                <div class="row" style="justify-content: flex-end">
+                    <druid-button onclick="this.closest('dialog').close()">cancel</druid-button>
+                    <druid-button type="submit" variant="primary">save</druid-button>
+                </div>
+            </form>
+        </dialog>
+
+        <h2>Confirm / prompt</h2>
+        <p class="hint">
+            druids.confirm(msg, opts?) &rarr; Promise&lt;boolean&gt; and druids.prompt(msg, opts?) &rarr;
+            Promise&lt;string|null&gt; — imperative modals on the same .df-dialog chrome; result echoed as a toast
+        </p>
+        <div class="row">
+            <druid-button onclick="druids.confirm('Reload the model list?').then(ok =&gt; druids.toast('confirm → ' + ok, ok ? 'ok' : 'info'))">confirm</druid-button>
+            <druid-button variant="danger" onclick="druids.confirm('Delete this model?\nThis cannot be undone.', { title: 'Delete model', confirmLabel: 'Delete', danger: true }).then(ok =&gt; druids.toast('confirm → ' + ok, ok ? 'danger' : 'info'))">danger confirm</druid-button>
+            <druid-button onclick="druids.prompt('Pin the current context as:', { placeholder: 'name', value: 'default' }).then(v =&gt; druids.toast('prompt → ' + (v === null ? '(cancelled)' : v), v === null ? 'info' : 'ok'))">prompt</druid-button>
+        </div>
+
+        <h2>Modal (custom content)</h2>
+        <p class="hint">
+            druids.modal({ title, content, actions }) — the same .df-dialog chrome (backdrop / Esc /
+            focus-trap) around <em>arbitrary</em> content (a Node or a string), returning the &lt;dialog&gt;.
+        </p>
+        <div class="row">
+            <druid-button variant="outline" onclick="
+                const t = document.createElement('div');
+                t.innerHTML = '&lt;p class=&quot;df-dialog-text&quot;&gt;Quants for this repo:&lt;/p&gt;&lt;div style=&quot;display:flex;gap:6px;flex-wrap:wrap&quot;&gt;&lt;span class=&quot;df-badge&quot;&gt;Q4_K_M&lt;/span&gt;&lt;span class=&quot;df-badge&quot;&gt;Q5_K_M&lt;/span&gt;&lt;span class=&quot;df-badge&quot;&gt;Q8_0&lt;/span&gt;&lt;/div&gt;';
+                druids.modal({ title: 'Repo quants', content: t, actions: [{ label: 'Close' }] });
+            ">custom-content modal</druid-button>
+        </div>
+    </section>
+
+    {# ---------- Display: read-only presentation of data ---------- #}
+    <section data-tab-panel="display" class="df-tab-panel scroll">
+        <h2>Badges</h2>
+        <p class="hint">.df-badge — status / capability / count pills (neutral, or .ok / .warn / .danger / .accent)</p>
+        <div class="row" style="align-items: center">
+            <span class="df-badge">neutral</span>
+            <span class="df-badge ok">ready</span>
+            <span class="df-badge warn">degraded</span>
+            <span class="df-badge danger">error</span>
+            <span class="df-badge accent">7 ctx</span>
+            <span class="df-badge ok"><druid-icon name="check"></druid-icon> pinned</span>
+        </div>
+
+        <h2>Stats</h2>
+        <p class="hint">.df-stat-number / .df-stat-caption — metric tiles inside a .df-card-body</p>
+        <div class="row" style="gap: 14px">
+            <div class="df-card" style="min-width: 120px">
+                <div class="df-card-body">
+                    <div class="df-stat-number">12</div>
+                    <div class="df-stat-caption">Models</div>
+                </div>
+            </div>
+            <div class="df-card" style="min-width: 120px">
+                <div class="df-card-body">
+                    <div class="df-stat-number">3</div>
+                    <div class="df-stat-caption">Running</div>
+                </div>
+            </div>
+            <div class="df-card" style="min-width: 120px">
+                <div class="df-card-body">
+                    <div class="df-stat-number">48 GB</div>
+                    <div class="df-stat-caption">Storage used</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Chat messages</h2>
+        <p class="hint">&lt;druid-chat-message sender="user|assistant" label="..."&gt; — content is slotted (markdown rendering stays app-side); slot="actions" adds an action row</p>
+        <div style="max-width: 640px">
+            <druid-chat-message sender="user">Hey, what models are currently loaded?</druid-chat-message>
+            <druid-chat-message sender="assistant" label="llama3">
+                Currently loaded: <code>llama3:8b</code> and <code>qwen2.5-coder:14b</code>. Together they use about 18&nbsp;GB of memory.
+            </druid-chat-message>
+            <druid-chat-message sender="user">
+                Unload the coder model please.
+                <druid-icon-button slot="actions" icon="rotate-cw" label="Resend" circle small></druid-icon-button>
+                <druid-icon-button slot="actions" icon="x" label="Delete" circle small></druid-icon-button>
+            </druid-chat-message>
+        </div>
+
+        <h2>Log view — bare</h2>
+        <p class="hint">
+            &lt;druid-log-view src="/api/log" poll="5"&gt; — fetch, level filter, follow toggle and
+            refresh built in; polling pauses while the tab is hidden. Entries here are static samples.
+        </p>
+        <div style="height: 260px; display: flex; flex-direction: column; flex-shrink: 0">
+            <druid-log-view src="{{ base_path }}/api/log" poll="5"></druid-log-view>
+        </div>
+
+        <h2>Log view — boxed</h2>
+        <p class="hint">
+            &lt;druid-log-view boxed heading="..."&gt; — same component with the df-card look: a raised
+            header bar over a darker body, controls in the header line
+        </p>
+        <div style="height: 300px; display: flex; flex-direction: column; flex-shrink: 0">
+            <druid-log-view boxed heading="Application Log" src="{{ base_path }}/api/log" poll="5"></druid-log-view>
+        </div>
+    </section>
+
+    {# ---------- Layout: page chrome and containers ---------- #}
+    <section data-tab-panel="layout" class="df-tab-panel scroll">
+        <h2>Navbar, tabs, accent, footer</h2>
+        <p class="hint">
+            This page itself is the demo: &lt;druid-navbar&gt; with &lt;druid-tabs&gt; above,
+            &lt;druid-footer&gt; below. The palette button (top right) is &lt;druid-accent-picker&gt; —
+            pick an accent (or rainbow) and watch components, leaf and favicon follow. The choice
+            persists per app in localStorage.
+        </p>
+
+        <h2>Cards / boxed panels</h2>
+        <p class="hint">.df-card with .df-card-header / -body / -footer — the boxed container style; tab panels without it stay bare</p>
+        <div class="df-card" style="max-width: 560px">
+            <div class="df-card-header">
+                Card title
+                <span class="df-muted">header line</span>
+            </div>
+            <div class="df-card-body">
+                Body content — anything goes here. Add class "scroll" to make the body scroll
+                instead of the page.
+            </div>
+            <div class="df-card-footer">
+                <span class="df-muted">footer</span>
+                <span style="flex: 1"></span>
+                <druid-button variant="soft">action</druid-button>
+            </div>
+        </div>
+
+        <h2>Boxed style for any tab content</h2>
+        <p class="hint">the same look for your own tabs: .df-card with your controls in .df-card-header</p>
+        <div class="df-card" style="flex-shrink: 0; margin-bottom: 26px">
+            <div class="df-card-header">
+                My custom tab
+                <span class="spacer" style="flex: 1"></span>
+                <druid-search placeholder="search" style="width: 180px"></druid-search>
+                <druid-button variant="soft">action</druid-button>
+                <druid-icon-button icon="rotate-cw" label="Refresh"></druid-icon-button>
+            </div>
+            <div class="df-card-body">
+                Any content — tables, forms, whatever the tab needs.
+            </div>
+        </div>
+
+        <h2>Sub-tabs (scoped tab content)</h2>
+        <p class="hint">
+            &lt;druid-subtabs&gt; — a self-contained pill strip with its own panels, scoped so it
+            nests inside a page tab. &lt;druid-tab slot="tab"&gt; are the buttons; &lt;div
+            data-subtab-panel="..."&gt; are the panels. Switching pauses/resumes visibility-aware
+            children (the Log panel's &lt;druid-log-view&gt; only polls while shown). Two looks like
+            &lt;druid-log-view&gt;: bare heading + strip over a boxed content area (default), or
+            <code>boxed</code> into one card.
+        </p>
+        <p class="hint">default — bare heading + tab strip, content in its own box</p>
+        <div style="max-width: 900px; height: 300px; display: flex; flex-direction: column; margin-bottom: 26px">
+            <druid-subtabs active="models" heading="Manage">
+                <druid-tab slot="tab" panel="models">Models</druid-tab>
+                <druid-tab slot="tab" panel="prompt">Prompt</druid-tab>
+                <druid-tab slot="tab" panel="log">Log</druid-tab>
+                <div data-subtab-panel="models" class="scroll">
+                    <p class="hint" style="margin-top: 0">Any content — the Models panel.</p>
+                    <div class="row">
+                        <druid-button variant="soft">llama3:8b</druid-button>
+                        <druid-button variant="soft">qwen2.5-coder:14b</druid-button>
+                    </div>
+                </div>
+                <div data-subtab-panel="prompt" class="scroll">
+                    <druid-textarea rows="4" placeholder="System prompt…"></druid-textarea>
+                </div>
+                <div data-subtab-panel="log">
+                    <druid-log-view src="{{ base_path }}/api/log" poll="5"></druid-log-view>
+                </div>
+            </druid-subtabs>
+        </div>
+        <p class="hint">boxed — the bordered card with a header divider</p>
+        <div style="max-width: 900px; height: 300px; display: flex; flex-direction: column; margin-bottom: 26px">
+            <druid-subtabs active="models" heading="Manage" boxed>
+                <druid-tab slot="tab" panel="models">Models</druid-tab>
+                <druid-tab slot="tab" panel="prompt">Prompt</druid-tab>
+                <druid-tab slot="tab" panel="log">Log</druid-tab>
+                <div data-subtab-panel="models" class="scroll">
+                    <p class="hint" style="margin-top: 0">Any content — the Models panel.</p>
+                    <div class="row">
+                        <druid-button variant="soft">llama3:8b</druid-button>
+                        <druid-button variant="soft">qwen2.5-coder:14b</druid-button>
+                    </div>
+                </div>
+                <div data-subtab-panel="prompt" class="scroll">
+                    <druid-textarea rows="4" placeholder="System prompt…"></druid-textarea>
+                </div>
+                <div data-subtab-panel="log">
+                    <druid-log-view src="{{ base_path }}/api/log" poll="5"></druid-log-view>
+                </div>
+            </druid-subtabs>
+        </div>
+    </section>
+
+    {# ---------- Colors: the design tokens ---------- #}
+    <section data-tab-panel="colors" class="df-tab-panel scroll">
+        <h2>Design tokens</h2>
+        <p class="hint">CSS custom properties from druids.css — the entire palette every component draws from</p>
+        <div class="swatches">
+            {% for name in ["--bg", "--bg-raised", "--bg-hover", "--border", "--text", "--text-muted", "--accent", "--accent-soft", "--danger", "--danger-soft", "--ok", "--ok-soft", "--warn", "--warn-soft"] %}
+                <div class="swatch-card">
+                    <div class="chip" style="background: var({{ name }})"></div>
+                    <div class="meta">
+                        {{ name }}
+                        <code>var({{ name }})</code>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ---------- Login ---------- #}
+    <section data-tab-panel="login" class="df-tab-panel scroll">
+        <h2>Login card</h2>
+        <p class="hint">
+            &lt;druid-login-card&gt; — light DOM so password managers work. The real page lives at
+            /login when the app passes LoginSettings (run the preview with --login, user/password
+            "druid"/"druid").
+        </p>
+        <div class="login-demo">
+            <druid-login-card brand="Druids" action="#" error="Invalid username or password."></druid-login-card>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {# The preview is itself a druids consumer. The framework ships no icons, so
+       here we register the handful the styleguide shows — exactly what a real
+       app does: copy in only the Lucide (or any) SVGs it actually uses. This
+       runs after druids.js (both are deferred modules, executed in order). #}
+    <script type="module">
+        druids.registerIcons({
+                "pencil": "<svg class=\"lucide lucide-pencil\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /><path d=\"m15 5 4 4\" /></svg>",
+                "upload": "<svg class=\"lucide lucide-upload\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M12 3v12\" /><path d=\"m17 8-5-5-5 5\" /><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /></svg>",
+                "pin": "<svg class=\"lucide lucide-pin\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M12 17v5\" /><path d=\"M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z\" /></svg>",
+                "rotate-cw": "<svg class=\"lucide lucide-rotate-cw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8\" /><path d=\"M21 3v5h-5\" /></svg>",
+                "x": "<svg class=\"lucide lucide-x\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M18 6 6 18\" /><path d=\"m6 6 12 12\" /></svg>",
+                "trash-2": "<svg class=\"lucide lucide-trash-2\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M10 11v6\" /><path d=\"M14 11v6\" /><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\" /><path d=\"M3 6h18\" /><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\" /></svg>",
+                "house": "<svg class=\"lucide lucide-house\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\" /><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" /></svg>",
+                "search": "<svg class=\"lucide lucide-search\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"m21 21-4.34-4.34\" /><circle cx=\"11\" cy=\"11\" r=\"8\" /></svg>",
+                "bell": "<svg class=\"lucide lucide-bell\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M10.268 21a2 2 0 0 0 3.464 0\" /><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\" /></svg>",
+                "settings": "<svg class=\"lucide lucide-settings\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\" /><circle cx=\"12\" cy=\"12\" r=\"3\" /></svg>",
+                "cloud-download": "<svg class=\"lucide lucide-cloud-download\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M12 13v8l-4-4\" /><path d=\"m12 21 4-4\" /><path d=\"M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284\" /></svg>",
+                "triangle-alert": "<svg class=\"lucide lucide-triangle-alert\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\" /><path d=\"M12 9v4\" /><path d=\"M12 17h.01\" /></svg>",
+                "circle-check": "<svg class=\"lucide lucide-circle-check\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"m9 12 2 2 4-4\" /></svg>",
+                "heart": "<svg class=\"lucide lucide-heart\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5\" /></svg>",
+                "rocket": "<svg class=\"lucide lucide-rocket\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5\" /><path d=\"M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09\" /><path d=\"M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z\" /><path d=\"M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05\" /></svg>",
+                "check": "<svg class=\"lucide lucide-check\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ><path d=\"M20 6 9 17l-5-5\" /></svg>",
+        });
+    </script>
+{% endblock %}

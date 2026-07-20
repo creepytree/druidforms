@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>
+            {%- block title %}{{ druids.brand|lower }}{% endblock -%}
+        </title>
+        {# placeholder favicon; theme.ts swaps in the accent-colored leaf #}
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%238b94a7'/></svg>">
+        <link rel="stylesheet" href="{{ base_path }}/druids/druids.css">
+        {% block styles %}{% endblock %}
+        {# preload the vendor chunk so it doesn't wait for druids.js to be parsed first #}
+        <link rel="modulepreload" href="{{ base_path }}/druids/lit-vendor.js">
+        <script type="module" src="{{ base_path }}/druids/druids.js"></script>
+    </head>
+    <body class="{% block body_class %}{% endblock %}" data-base-path="{{ base_path }}" data-druids-slug="{{ druids.slug }}">
+        {% block body %}
+            <druid-navbar brand="{{ druids.brand }}" {% block navbar_attrs %}{% if druids.login_enabled %}logout-href="{{ base_path }}/logout"{% endif %}{% endblock %}>
+                {% block tabs %}{% endblock %}
+                {% block actions %}{% endblock %}
+            </druid-navbar>
+            <main>
+                {% block content %}{% endblock %}
+            </main>
+            <druid-footer brand="{{ druids.brand|lower }}"
+                          version="{{ druids.version }}"
+                          author="{{ druids.author }}"
+                          github="{{ druids.github_url }}"></druid-footer>
+        {% endblock %}
+        {% block scripts %}{% endblock %}
+    </body>
+</html>

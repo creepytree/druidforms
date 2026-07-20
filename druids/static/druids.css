@@ -1,0 +1,597 @@
+/* druids.css — design tokens and light-DOM base styles.
+   Components carry their own styles in shadow DOM; everything here is either
+   a token (custom properties pierce shadow roots) or styling for plain
+   light-DOM markup (page skeleton, forms, the login card). */
+
+/* Vendored UI font: Inter (variable, latin subset — regenerate from the
+   official release when updating, like lit-vendor.js). swap keeps first
+   paint on the system fallback. */
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-var-latin.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* native widget chrome (select popups, scrollbars, pickers) in dark */
+    color-scheme: dark;
+    --bg: #12151c;
+    --bg-raised: #1a1f2a;
+    --bg-hover: #232a38;
+    --border: #2c3444;
+    --text: #dde3ee;
+    --text-muted: #8b94a7;
+    /* fallback before the bundle runs, the palette lives in theme.ts */
+    --accent: #5b8def;
+    --accent-rgb: 91, 141, 239;
+    --accent-soft: rgba(91, 141, 239, 0.18);
+    /* own red, brighter than the red accent swatch so delete stays distinct */
+    --danger: #ff6b6b;
+    --danger-soft: rgba(255, 107, 107, 0.18);
+    --ok: #4fbf82;
+    --ok-soft: rgba(79, 191, 130, 0.18);
+    --warn: #d9a441;
+    --warn-soft: rgba(217, 164, 65, 0.18);
+    --radius: 10px;
+    --shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+* {
+    box-sizing: border-box;
+    /* themed scrollbars (firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* themed scrollbars (webkit) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* the bundle is a deferred module, so custom elements upgrade after first
+   paint; until then they are unknown inline elements and slotted svgs render
+   at their default (huge) size — keep them hidden until defined */
+druid-navbar:not(:defined),
+druid-tabs:not(:defined),
+druid-tab:not(:defined),
+druid-button:not(:defined),
+druid-icon:not(:defined),
+druid-icon-button:not(:defined),
+druid-accent-picker:not(:defined),
+druid-footer:not(:defined),
+druid-login-card:not(:defined),
+druid-textarea:not(:defined),
+druid-log-view:not(:defined),
+druid-progress:not(:defined),
+druid-search:not(:defined),
+druid-chat-message:not(:defined),
+druid-tooltip:not(:defined),
+druid-popover:not(:defined),
+druid-select:not(:defined) {
+    display: none;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+/* ---------- layout ---------- */
+
+/* fixed page: navbar and footer stay, only the panel content scrolls */
+main {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 30px 22px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* panels toggled by <druid-tabs> via data-tab-panel */
+.df-tab-panel {
+    display: none;
+}
+
+.df-tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.df-tab-panel.scroll.active {
+    overflow-y: auto;
+}
+
+/* panels toggled by <druid-subtabs> (its own scoped, boxed sub-tabs) */
+[data-subtab-panel] {
+    display: none;
+}
+
+[data-subtab-panel].active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+[data-subtab-panel].scroll.active {
+    overflow-y: auto;
+}
+
+/* ---------- card / boxed panel ----------
+   Wrap a tab panel's content in .df-card for the boxed look with a header
+   line; leave it out for the bare style. */
+
+.df-card {
+    display: flex;
+    flex-direction: column;
+    /* size to content; never absorb flex shrinkage in a scrolling panel */
+    flex-shrink: 0;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+/* stretch to fill the tab panel (give the body class "scroll") */
+.df-card.fill {
+    flex: 1;
+    min-height: 0;
+}
+
+.df-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.df-card-header .df-muted {
+    font-size: 0.85rem;
+}
+
+.df-card-body {
+    flex: 1;
+    min-height: 0;
+    padding: 14px;
+}
+
+.df-card-body.scroll {
+    overflow-y: auto;
+}
+
+.df-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+}
+
+/* ---------- dialog (native <dialog>, the framework modal pattern) ----------
+   <dialog class="df-dialog"> + dialog.showModal(); a <form method="dialog">
+   inside closes it on submit. */
+
+dialog.df-dialog {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    min-width: min(340px, 92vw);
+    max-width: min(560px, 92vw);
+    /* open/close animation: fade + slight rise; allow-discrete keeps the
+       dialog displayed until the close transition finished */
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        overlay 0.18s ease allow-discrete,
+        display 0.18s ease allow-discrete;
+}
+
+dialog.df-dialog[open] {
+    opacity: 1;
+    transform: none;
+}
+
+@starting-style {
+    dialog.df-dialog[open] {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+}
+
+dialog.df-dialog::backdrop {
+    background: rgba(0, 0, 0, 0);
+    transition:
+        background 0.18s ease,
+        overlay 0.18s ease allow-discrete,
+        display 0.18s ease allow-discrete;
+}
+
+dialog.df-dialog[open]::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+@starting-style {
+    dialog.df-dialog[open]::backdrop {
+        background: rgba(0, 0, 0, 0);
+    }
+}
+
+dialog.df-dialog h3 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+}
+
+/* body text / input / button row for druids.confirm() and druids.prompt() */
+.df-dialog-text {
+    margin: 0 0 16px;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    /* honor newlines in the message */
+    white-space: pre-line;
+}
+
+.df-dialog-input {
+    width: 100%;
+    margin: 0 0 18px;
+}
+
+.df-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ---------- toasts (created by druids.toast()) ---------- */
+
+.df-toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.df-toast {
+    /* soft wash of the type color over the raised bg */
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    max-width: 340px;
+    animation: df-toast-in 0.2s ease-out;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.df-toast.ok {
+    background: linear-gradient(var(--ok-soft), var(--ok-soft)) var(--bg-raised);
+    border-left-color: var(--ok);
+}
+
+.df-toast.warn {
+    background: linear-gradient(var(--warn-soft), var(--warn-soft)) var(--bg-raised);
+    border-left-color: var(--warn);
+}
+
+.df-toast.danger {
+    background: linear-gradient(var(--danger-soft), var(--danger-soft)) var(--bg-raised);
+    border-left-color: var(--danger);
+}
+
+.df-toast.out {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+@keyframes df-toast-in {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ---------- forms (light DOM) ---------- */
+
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="email"],
+input[type="url"],
+textarea,
+select {
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+select option {
+    background: var(--bg-raised);
+    color: var(--text);
+}
+
+/* <druid-search> — light DOM (see druid-search.ts) */
+druid-search {
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+}
+
+druid-search svg {
+    position: absolute;
+    left: 10px;
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+druid-search input[type="search"] {
+    padding-left: 32px;
+    width: 100%;
+}
+
+/* <druid-textarea> — light DOM, so styled here; rows sets the default height in lines */
+druid-textarea {
+    display: block;
+}
+
+druid-textarea textarea {
+    display: block;
+    width: 100%;
+    resize: vertical;
+}
+
+druid-textarea[autosize] textarea {
+    overflow: hidden;
+    resize: none;
+}
+
+.df-muted {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* ---------- color utility classes ----------
+   Re-point a component's accent pair to another token; custom properties
+   inherit into shadow roots, so this recolors druid elements from plain
+   classes: <druid-button variant="soft" class="df-ok">Approve</druid-button> */
+
+.df-ok {
+    --df-accent: var(--ok);
+    --df-accent-soft: var(--ok-soft);
+}
+
+.df-warn {
+    --df-accent: var(--warn);
+    --df-accent-soft: var(--warn-soft);
+}
+
+.df-danger {
+    --df-accent: var(--danger);
+    --df-accent-soft: var(--danger-soft);
+}
+
+.df-form-error {
+    margin: 0;
+    color: var(--danger);
+    font-size: 0.85rem;
+}
+
+/* ---------- badge (status / capability / count pills) ----------
+   Neutral by default; the status modifiers wash it with a token color:
+   <span class="df-badge">7 ctx</span>
+   <span class="df-badge ok">ready</span>   (+ .warn / .danger / .accent) */
+
+.df-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.df-badge.ok {
+    background: var(--ok-soft);
+    border-color: transparent;
+    color: var(--ok);
+}
+
+.df-badge.warn {
+    background: var(--warn-soft);
+    border-color: transparent;
+    color: var(--warn);
+}
+
+.df-badge.danger {
+    background: var(--danger-soft);
+    border-color: transparent;
+    color: var(--danger);
+}
+
+.df-badge.accent {
+    background: var(--accent-soft);
+    border-color: transparent;
+    color: var(--accent);
+}
+
+/* ---------- stat (metric number + caption) ----------
+   A dashboard tile: drop into a .df-card-body.
+   <div class="df-stat-number">12</div><div class="df-stat-caption">Models</div> */
+
+.df-stat-number {
+    color: var(--text);
+    font-size: 1.9rem;
+    font-weight: 650;
+    line-height: 1.1;
+}
+
+.df-stat-caption {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* ---------- login (light DOM, rendered by <druid-login-card>) ---------- */
+
+.df-login-body {
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.df-login-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: min(340px, 92vw);
+    padding: 30px 34px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.df-login-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.df-login-brand h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+}
+
+.df-login-brand .brand-leaf {
+    width: 34px;
+    height: 34px;
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent));
+    flex-shrink: 0;
+}
+
+.df-login-subtitle {
+    margin: 0 0 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.df-login-card .df-form-error {
+    padding: 8px 12px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+}
+
+.df-login-card label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text);
+}
+
+.df-login-card input {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 1rem;
+}
+
+.df-login-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+    font: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.df-login-submit:hover {
+    filter: brightness(1.12);
+}
