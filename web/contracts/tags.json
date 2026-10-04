@@ -1,0 +1,28 @@
+{
+    "_note": "The tag vocabulary, and the only place new tags may be introduced. gen-contracts.mjs validates every `tags` array in meta.json against this file and fails the build on an unknown tag, so the vocabulary cannot drift into a free-text field. Keep it small: a tag that matches almost everything, or almost nothing, does not help anyone find anything. Each entry is the tag and what it promises to the reader who greps for it.",
+    "tags": {
+        "forms": "collects input from the user; posts in a form, or feeds one",
+        "navigation": "moves the user between views, or shows where they are",
+        "layout": "arranges other things; carries no content of its own",
+        "data": "displays a set of records — rows, entries, series",
+        "feedback": "tells the user what just happened or is happening",
+        "overlay": "paints outside its own box, over the rest of the page",
+        "theming": "changes how everything else looks: color, density, motion",
+        "text": "styles prose and inline typography",
+        "chrome": "the frame around an app's content — bars, shells, page furniture",
+        "status": "encodes a state in color: ok, warn, danger, accent",
+        "interactive": "the user clicks, types or drags it",
+        "stateful": "holds state across interactions, not just at render",
+        "async": "fetches, polls or waits, and can be in flight",
+        "keyboard": "has keyboard affordances beyond plain tab-and-enter",
+        "form-participating": "takes part in a native form: name, value, validation, submit",
+        "top-layer": "escapes clipping ancestors via the browser's top layer",
+        "light-dom": "styles plain markup the app owns; not a custom element",
+        "slotted": "wraps markup the app still owns and keeps it in the light DOM",
+        "surface": "a background rung, or something that paints one",
+        "density": "trades padding for content at a given width",
+        "motion": "animates, or governs animation",
+        "brand": "carries the app's identity: name, mark, accent",
+        "a11y": "exists primarily to serve assistive technology"
+    }
+}

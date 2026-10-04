@@ -1,0 +1,14 @@
+{
+    "default": "blue",
+    "accents": [
+        { "name": "teal", "hex": "#3fbdbd", "hue": 195 },
+        { "name": "blue", "hex": "#5b8def", "hue": 262 },
+        { "name": "purple", "hex": "#9d7bef", "hue": 295 },
+        { "name": "pink", "hex": "#ffa6c9", "hue": 355 },
+        { "name": "red", "hex": "#ff355e", "hue": 16 },
+        { "name": "orange", "hex": "#ffa800", "hue": 72 },
+        { "name": "yellow", "hex": "#ffee8c", "hue": 100 },
+        { "name": "lime", "hex": "#ccff00", "hue": 123 },
+        { "name": "green", "hex": "#80ef80", "hue": 144 }
+    ]
+}

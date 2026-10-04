@@ -1,0 +1,183 @@
+# druids 1.0.17 — every documented thing, one per line. Generated; do not edit.
+#
+# columns:  kind  name  tags  summary
+#
+# Grep this file first. Then read the full contract for what you found:
+#   component, api, class  →  druids.components.json
+#   token                  →  druids.tokens.json
+#   since-which-version    →  druids.registry.json
+# Composition patterns that no manifest can express are in AGENTS.md §3.
+#
+# tags in use:
+#   forms                collects input from the user; posts in a form, or feeds one
+#   navigation           moves the user between views, or shows where they are
+#   layout               arranges other things; carries no content of its own
+#   data                 displays a set of records — rows, entries, series
+#   feedback             tells the user what just happened or is happening
+#   overlay              paints outside its own box, over the rest of the page
+#   theming              changes how everything else looks: color, density, motion
+#   text                 styles prose and inline typography
+#   chrome               the frame around an app's content — bars, shells, page furniture
+#   status               encodes a state in color: ok, warn, danger, accent
+#   interactive          the user clicks, types or drags it
+#   stateful             holds state across interactions, not just at render
+#   async                fetches, polls or waits, and can be in flight
+#   keyboard             has keyboard affordances beyond plain tab-and-enter
+#   form-participating   takes part in a native form: name, value, validation, submit
+#   top-layer            escapes clipping ancestors via the browser's top layer
+#   light-dom            styles plain markup the app owns; not a custom element
+#   slotted              wraps markup the app still owns and keeps it in the light DOM
+#   surface              a background rung, or something that paints one
+#   density              trades padding for content at a given width
+#   motion               animates, or governs animation
+#   brand                carries the app's identity: name, mark, accent
+#   a11y                 exists primarily to serve assistive technology
+
+component  druid-accent-picker        theming brand overlay interactive chrome                                          Swatch menu for the app accent — the vivid hue. Belongs in the navbar actions slot; the pick is stored per app slug.
+component  druid-button               forms interactive status form-participating                                       Text button. variant covers primary, danger, outline, soft and soft-danger; toggle, loading and type=submit combine with any of them.
+component  druid-chat-message         data text feedback slotted                                                        One chat bubble, sender="user" or "assistant", with an actions row and a streaming state that shows druid-dots until the reply arrives.
+component  druid-dots                 feedback motion async                                                             Three-dot waiting animation — "something is being produced" (a streaming reply, a model loading), where .df-spinner means "a request is in flight".
+component  druid-flavor-picker        theming surface overlay interactive chrome                                        Swatch menu for the surface flavor — the hue of the *neutral* surfaces. The same nine colors in the same order as the accent picker, ending on the same rainbow loop; the palette's default swatch is the default flavor.
+component  druid-footer               chrome navigation brand                                                           The page's bottom bar: version line, author and repository link, rendered from the Druids object.
+component  druid-icon                 text brand                                                                        Renders an icon the app registered with druids.registerIcons(); the framework ships none of its own.
+component  druid-icon-button          forms interactive status                                                          Icon-only button. circle, small, toggle, soft, href and loading combine freely; set icon to a registered name or slot an inline <svg>.
+component  druid-log-view             data async feedback                                                               Self-polling log table: fetches entries from src, filters by level, follows the tail, and polls only while it is visible.
+component  druid-login-card           forms form-participating chrome                                                   The sign-in form, form-participating; rendered by the framework's own login page.
+component  druid-navbar               chrome navigation brand layout                                                    The page's top bar: brand mark, the tab strip, and an actions region that also carries the theme, flavor and accent controls.
+component  druid-popover              overlay top-layer interactive stateful slotted                                    Anchored panel primitive: hangs arbitrary content off a trigger in the top layer, with light-dismiss and same-trigger toggle.
+component  druid-progress             feedback status data                                                              Thin progress bar with a value/max or an indeterminate state; a df-warn / df-danger class turns the fill into a threshold state.
+component  druid-search               forms interactive async                                                           Debounced search input; fires search while the user types, for live filtering.
+component  druid-select               forms form-participating overlay top-layer interactive stateful keyboard density  Framework-styled dropdown over light-DOM <option> children, opening in the top layer. filter, free, compact and multiple extend it; multiple makes it an ordered list-of-picks control.
+component  druid-subtabs              navigation layout stateful slotted                                                A self-contained sub-tab widget scoped to itself, so it nests inside a page tab; boxed merges its header and body into one card.
+component  druid-tab                  navigation interactive                                                            One tab button, in a druid-tabs strip or a druid-subtabs header.
+component  druid-table                data slotted interactive stateful                                                 Sorting and live filtering for a plain light-DOM table (slotted, never rebuilt).
+component  druid-tabs                 navigation layout stateful                                                        The document-level tab strip. It only drives visibility — the panels are the app's own .df-tab-panel sections.
+component  druid-textarea             forms form-participating interactive                                              Textarea whose default height is set in line counts; autosize grows it to its content.
+component  druid-theme-toggle         theming surface interactive chrome                                                One button cycling the theme preference auto → light → dark. auto follows the OS and is the default; the pick is stored per app slug.
+component  druid-tooltip              overlay top-layer feedback a11y slotted                                           Themed hover/focus bubble that wraps the element it describes; works over disabled controls where native title is unreliable.
+class      .df-shell-fixed            layout chrome density                                                             Keeps the fixed-height page shell at every width, instead of handing the page back to document flow below 900px.
+class      .df-shell-compact          layout chrome density                                                             Page-level density for a panel-width host (a browser side panel, a popup): 10px gutters, no max width, a tighter druid-select trigger.
+class      .df-tab-panel              layout navigation                                                                 A page-level tab content panel, shown when druid-tabs selects its data-tab-panel.
+class      .df-row                    layout                                                                            Horizontal arrangement primitive; collapses to one column under 720px.
+class      .df-stack                  layout                                                                            Vertical arrangement primitive; carries the framework's spacing.
+class      .df-grid                   layout                                                                            Auto-filling grid; collapses to one column under 720px.
+class      .df-toolbar                layout chrome                                                                     A bar of controls above a panel or table.
+class      .df-spacer                 layout                                                                            Flexible gap that pushes what follows to the far end of a row.
+class      .df-divider                layout surface                                                                    A rule between sections of a stack or row.
+class      .df-card                   layout surface                                                                    Boxed panel: a header bar over a raised body, the same split every boxed component paints.
+class      .df-card-header            layout surface text                                                               The header bar of a card.
+class      .df-card-body              layout surface                                                                    The body of a card.
+class      .df-card-footer            layout surface                                                                    The footer bar of a card.
+class      .df-table                  data surface                                                                      The framework table. Wrap it in df-table-wrap for the sticky header's scroll container.
+class      .df-table-wrap             data layout                                                                       The scroll container a df-table's sticky header needs.
+class      .df-stat-number            data text                                                                         The figure in a metric tile.
+class      .df-stat-caption           data text                                                                         The label under a df-stat-number.
+class      .df-badge                  status data text                                                                  Status / capability / count pill.
+class      .df-empty                  feedback brand                                                                    Nothing-here panel; paints the brand leaf as a faint, slowly breathing accent watermark.
+class      .df-alert                  feedback status                                                                   A message that stays on the page (druids.toast() is the transient one).
+class      .df-spinner                feedback async motion                                                             Busy state meaning a request is in flight (druid-dots means something is being produced).
+class      .df-skeleton               feedback async motion                                                             Placeholder shimmer for content that has not arrived.
+class      .df-toast                  feedback overlay status                                                           The transient notification druids.toast() builds; df-toast-stack is the container it stacks in.
+class      .df-animate-in             motion                                                                            Entrance animation for content swapped in.
+class      .df-animate-rise           motion                                                                            Entrance animation that also lifts the content into place.
+class      .df-field                  forms layout                                                                      Wraps a label, a control and its hint or error.
+class      .df-label                  forms text                                                                        The label above a control.
+class      .df-hint                   forms text                                                                        Per-field help text under a control; doubles as the error line.
+class      .df-form-error             forms text status                                                                 A form-level error message.
+class      .df-switch                 forms form-participating interactive                                              On a checkbox, renders it as a switch; it stays a native checkbox.
+class      .df-dialog                 overlay top-layer forms                                                           The chrome for a native <dialog>, opened with showModal().
+class      .df-login-card             forms chrome brand                                                                The framework login page's card; df-login-body, df-login-brand, df-login-subtitle and df-login-submit are its parts.
+class      .df-ok                     theming status                                                                    Repoint a druid element's accent pair to the ok green.
+class      .df-warn                   theming status                                                                    Repoint a druid element's accent pair to the warn amber.
+class      .df-danger                 theming status                                                                    Repoint a druid element's accent pair to the danger red.
+class      .df-muted                  text                                                                              Dim text to --text-muted.
+api        druids.ACCENTS             theming brand                                                                     Array of preset accent hex values (the palette).
+api        druids.anchor              overlay top-layer layout                                                          Place a panel against an anchor element: position:fixed, flips when short of room, clamped and width-capped to the viewport, follows the anchor on scroll/resize; a panel with the `popover` attribute is also lifted into the top layer. The primitive behind druid-popover and druid-select — use it for an overlay control of your own that must escape a .df-card (overflow: hidden) or a transformed ancestor. Returns { update(), release() }.
+api        druids.applyAccent         theming brand                                                                     Set the app accent color (hex); persisted per app.
+api        druids.applyFlavor         theming surface                                                                   Tint the neutral surfaces with a palette hue, by swatch name. "neutral" (kept for older apps) returns to the default tint. Unknown names are ignored; stops a running flavor rainbow; this only paints — <druid-flavor-picker> also persists.
+api        druids.applyTheme          theming surface                                                                   Paint the page dark, light, or whichever the OS asks for ("auto", the default). Writes the resolved theme to <html data-theme> and re-applies the accent, which is tuned per theme. Only paints — <druid-theme-toggle> also persists.
+api        druids.clearFlavor         theming surface                                                                   Drop the flavor overrides so the surfaces return to the default tint (--df-flavor-default-hue) — what picking neutral does, without touching storage.
+api        druids.confirm             overlay top-layer feedback interactive                                            Promise-returning yes/no modal on the .df-dialog chrome. Resolves false on cancel or dismiss.
+api        druids.currentTheme        theming surface                                                                   The theme preference as picked: "auto", "light" or "dark".
+api        druids.FLAVORS             theming surface                                                                   Array of flavor hue names, in palette order (the accent swatch names). The default is the palette's default swatch, like the accent's.
+api        druids.form                overlay top-layer forms interactive                                               Promise-returning multi-field dialog — prompt() for more than one input. Resolves an object keyed by field `name` (number fields resolve numbers, or null when left blank; checkboxes booleans; everything else strings), or null on cancel/dismiss. `required`, the control's own constraints (min/max/step, type=email/url) and a per-field `validate` returning a message hold the dialog open and tint the field.
+api        druids.modal               overlay top-layer interactive                                                     Open a modal with arbitrary content on the .df-dialog chrome (backdrop / Esc / focus-trap); returns the <dialog>, already open.
+api        druids.prompt              overlay top-layer forms interactive                                               Promise-returning text-input modal. Resolves the string on OK, or null on cancel/dismiss.
+api        druids.registerIcon        theming brand                                                                     Register one icon by name for <druid-icon> / icon=.
+api        druids.registerIcons       theming brand                                                                     Register a map of {name: svgString} for <druid-icon> / icon=.
+api        druids.resolvedTheme       theming surface                                                                   The theme the page is painted in right now — "auto" already resolved to "light" or "dark".
+api        druids.startFlavorRainbow  theming surface motion                                                            Start the flavor rainbow: the neutral surfaces walk slowly through the palette's hues — the flavor picker's last swatch. Only paints; the picker also persists.
+api        druids.startRainbow        theming brand motion                                                              Start the animated cycling accent.
+api        druids.stopFlavorRainbow   theming surface motion                                                            Stop the flavor rainbow where it is; applyFlavor() and clearFlavor() stop it too.
+api        druids.stopRainbow         theming brand motion                                                              Stop the animated cycling accent.
+api        druids.THEMES              theming surface                                                                   The three theme preferences, in the order <druid-theme-toggle> cycles them.
+api        druids.toast               overlay top-layer feedback status                                                 Show a stacked, auto-dismissing notification.
+token      --df-flavor-default-hue    theming surface                                                                   the surface hue an app opens with — the palette's default swatch (the build checks they match); what clearFlavor() returns to
+token      --flavor-hue               theming surface                                                                   the live oklch hue of the neutral surfaces; starts at --df-flavor-default-hue and is overwritten by a flavor pick
+token      --flavor-on                theming surface                                                                   flavor strength 0..1 — scales surface chroma; 0 is a pure grey base
+token      --bg-dim                   theming surface                                                                   input / table / log wells — the page colour, as on GitHub: the border draws a well
+token      --bg                       theming surface                                                                   base app background
+token      --bg-raised                theming surface                                                                   raised card / panel surface
+token      --bg-header                theming surface                                                                   header bar of a raised thing (card, panel, table head); equals the card in dark (the rule under it divides), a pale grey in light
+token      --bg-hover                 theming surface                                                                   hover-state fill (transient only, never a resting surface)
+token      --df-panel-header-bg       theming surface                                                                   header bar override (.df-card, druid-log-view, druid-subtabs, druid-table)
+token      --df-panel-body-bg         theming surface                                                                   panel body override
+token      --df-select-bg             theming surface                                                                   select trigger + outline-button background (defaults to --bg)
+token      --df-select-pad            theming surface                                                                   druid-select trigger padding (df-shell-compact / [compact] tighten it)
+token      --df-select-chev           theming surface                                                                   druid-select chevron size
+token      --df-zebra                 theming surface                                                                   the alternating wash on a .df-table.zebra row
+token      --df-navbar-bg             theming surface                                                                   the global header bar: GitHub's inset — darker than the page in dark, the subtle grey in light
+token      --border                   theming text                                                                      hairline borders
+token      --border-muted             theming text                                                                      dividers inside a box (table rows): --border at 70%, so the box outline stays the strongest line
+token      --border-strong            theming text                                                                      edges that must read as edges (table rules, sticky header underline)
+token      --text                     theming text                                                                      primary text
+token      --text-muted               theming text                                                                      secondary / placeholder text
+token      --text-faint               theming text                                                                      watermarks and disabled glyphs
+token      --df-code-bg               theming text                                                                      the chip behind inline code — a wash of --text-faint, visible on every rung
+token      --accent                   theming brand status                                                              app accent
+token      --accent-soft              theming brand status                                                              accent wash (0.18 alpha)
+token      --df-accent                theming brand status                                                              component accent override (defaults to --accent; df-* classes repoint it)
+token      --df-accent-soft           theming brand status                                                              component accent wash override
+token      --ok                       theming status                                                                    success color
+token      --ok-soft                  theming status                                                                    success wash
+token      --warn                     theming status                                                                    warning color
+token      --warn-soft                theming status                                                                    warning wash
+token      --danger                   theming status                                                                    danger color
+token      --danger-soft              theming status                                                                    danger wash
+token      --df-table-min-width       theming layout                                                                    width floor of a .df-table.wide, and of any table with 5+ columns under 720px, so the wrap scrolls horizontally instead of squeezing (defaults to 620px)
+token      --radius                   theming layout                                                                    corner radius
+token      --radius-sm                theming layout                                                                    tighter radius for dense chrome (inputs, cells, chips)
+token      --shadow                   theming layout                                                                    elevation shadow
+token      --df-main-pad              theming layout                                                                    padding of the page's <main> (defaults to 30px 22px, 16px 12px under 720px); df-shell-compact sets it to 10px
+token      --df-main-max              theming layout                                                                    max width of the page's <main> (defaults to 1100px); df-shell-compact sets none
+token      --df-card-shadow           theming layout                                                                    the lift every .df-card casts on top of its border
+token      --df-scrim                 theming layout                                                                    the dimming behind a modal dialog
+token      --focus-ring               theming a11y                                                                      box-shadow halo applied on :focus-visible across light and shadow DOM
+token      --glow                     theming a11y                                                                      the same halo as a resting glow for lit elements
+token      --df-dur-fast              theming motion                                                                    pointer feedback (0.12s)
+token      --df-dur                   theming motion                                                                    standard transition (0.2s)
+token      --df-dur-slow              theming motion                                                                    entrances and overlays (0.42s)
+token      --df-ease                  theming motion                                                                    shared easing curve — quick out, unhurried settle
+token      --df-empty-mark            theming motion                                                                    brand leaf as a CSS mask url, published by theme.ts for .df-empty
+token      --df-l-dim                 theming surface                                                                   oklch lightness of the sunken-well rung — the per-theme scalar the ladder formula reads
+token      --df-c-dim                 theming surface                                                                   oklch chroma of the sunken-well rung, before --flavor-on scales it
+token      --df-l-bg                  theming surface                                                                   oklch lightness of the page rung — the per-theme scalar the ladder formula reads
+token      --df-c-bg                  theming surface                                                                   oklch chroma of the page rung, before --flavor-on scales it
+token      --df-l-raised              theming surface                                                                   oklch lightness of the raised card/panel rung — the per-theme scalar the ladder formula reads
+token      --df-c-raised              theming surface                                                                   oklch chroma of the raised card/panel rung, before --flavor-on scales it
+token      --df-l-header              theming surface                                                                   oklch lightness of the header-bar rung — the per-theme scalar the ladder formula reads
+token      --df-c-header              theming surface                                                                   oklch chroma of the header-bar rung, before --flavor-on scales it
+token      --df-l-hover               theming surface                                                                   oklch lightness of the pointer-feedback rung — the per-theme scalar the ladder formula reads
+token      --df-c-hover               theming surface                                                                   oklch chroma of the pointer-feedback rung, before --flavor-on scales it
+token      --df-l-border              theming surface                                                                   oklch lightness of the default line — the per-theme scalar the ladder formula reads
+token      --df-c-border              theming surface                                                                   oklch chroma of the default line, before --flavor-on scales it
+token      --df-l-border-strong       theming surface                                                                   oklch lightness of the line that must read as an edge — the per-theme scalar the ladder formula reads
+token      --df-c-border-strong       theming surface                                                                   oklch chroma of the line that must read as an edge, before --flavor-on scales it
+token      --df-l-text                theming surface                                                                   oklch lightness of body text — the per-theme scalar the ladder formula reads
+token      --df-c-text                theming surface                                                                   oklch chroma of body text, before --flavor-on scales it
+token      --df-l-text-muted          theming surface                                                                   oklch lightness of secondary text — the per-theme scalar the ladder formula reads
+token      --df-c-text-muted          theming surface                                                                   oklch chroma of secondary text, before --flavor-on scales it
+token      --df-l-text-faint          theming surface                                                                   oklch lightness of watermarks and disabled glyphs — the per-theme scalar the ladder formula reads
+token      --df-c-text-faint          theming surface                                                                   oklch chroma of watermarks and disabled glyphs, before --flavor-on scales it
+token      --df-l-nav                 theming surface                                                                   oklch lightness of the navbar rung (--df-navbar-bg) — the per-theme scalar the formula reads
+token      --df-c-nav                 theming surface                                                                   oklch chroma of the navbar rung, before --flavor-on scales it

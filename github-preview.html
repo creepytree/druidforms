@@ -1,0 +1,1857 @@
+<!doctype html><html><head><meta charset="utf-8"><title>GitHub palette, live</title>
+<style>/* druids.css — design tokens and light-DOM base styles.
+   Components carry their own styles in shadow DOM; everything here is either
+   a token (custom properties pierce shadow roots) or styling for plain
+   light-DOM markup (page skeleton, forms, the login card). */
+
+/* Vendored UI font: Inter (variable, latin subset — regenerate from the
+   official release when updating, like lit-vendor.js). swap keeps first
+   paint on the system fallback. */
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-var-latin.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* native widget chrome (select popups, scrollbars, pickers). The resolved
+       theme is an attribute on <html>, written by theme.ts — see the light
+       block below; "auto" is resolved in JS, so CSS only ever sees the result. */
+    color-scheme: dark;
+
+    /* --- flavor: the hue of the neutral surfaces ------------------
+       Independent of the accent. --flavor-hue is an oklch hue angle;
+       --flavor-on (0..1) scales the chroma, so 0 is a pure grey base
+       and 1 the full tint. The defaults below are the stock blue-grey
+       — <druid-flavor-picker> / druids.applyFlavor() override both on
+       :root, druids.clearFlavor() removes them and lands back here. */
+    --flavor-on: 1;
+    /* the app's own tint: what --flavor-hue is before anyone picks, and what the
+       flavor picker's "default" swatch paints and returns to. An app that wants a
+       different house tint sets this one, not --flavor-hue. */
+    --df-flavor-default-hue: 265;
+    --flavor-hue: var(--df-flavor-default-hue);
+
+    /* --- the surface ladder ---------------------------------------
+       Every surface in the framework picks a rung, so two adjacent elements
+       are always tellable apart without a heavy border:
+         dim     sunken wells (data bodies, log output, inputs)
+         bg      the page itself
+         raised  cards and panels lifted off the page
+         header  the bar that titles a raised thing
+         hover   transient pointer feedback only — never a resting fill
+       The rungs are ordered by *distance from the page*, not by lightness:
+       in dark mode lifted means lighter, in light mode it means whiter, so
+       the light block inverts the direction while every rung keeps its job.
+
+       Each rung is one lightness + one chroma scalar, and the oklch formula
+       below is written once. Switching theme rewrites only the scalars, which
+       is why light mode needs no second copy of the ladder — and an app that
+       wants to nudge a single rung can override one scalar. */
+    --df-l-dim: 0.14;
+    --df-c-dim: 0.013;
+    --df-l-bg: 0.196;
+    --df-c-bg: 0.016;
+    --df-l-raised: 0.262;
+    --df-c-raised: 0.024;
+    --df-l-header: 0.33;
+    --df-c-header: 0.034;
+    --df-l-hover: 0.4;
+    --df-c-hover: 0.042;
+    --df-l-border: 0.36;
+    --df-c-border: 0.034;
+    --df-l-border-strong: 0.46;
+    --df-c-border-strong: 0.045;
+    --df-l-text: 0.94;
+    --df-c-text: 0.016;
+    --df-l-text-muted: 0.71;
+    --df-c-text-muted: 0.03;
+    --df-l-text-faint: 0.54;
+    --df-c-text-faint: 0.034;
+
+    --bg-dim: oklch(var(--df-l-dim) calc(var(--df-c-dim) * var(--flavor-on)) var(--flavor-hue));
+    --bg: oklch(var(--df-l-bg) calc(var(--df-c-bg) * var(--flavor-on)) var(--flavor-hue));
+    --bg-raised: oklch(var(--df-l-raised) calc(var(--df-c-raised) * var(--flavor-on)) var(--flavor-hue));
+    --bg-header: oklch(var(--df-l-header) calc(var(--df-c-header) * var(--flavor-on)) var(--flavor-hue));
+    --bg-hover: oklch(var(--df-l-hover) calc(var(--df-c-hover) * var(--flavor-on)) var(--flavor-hue));
+    --border: oklch(var(--df-l-border) calc(var(--df-c-border) * var(--flavor-on)) var(--flavor-hue));
+    /* for edges that must read as an edge (table rules, sticky header underline) */
+    --border-strong: oklch(var(--df-l-border-strong) calc(var(--df-c-border-strong) * var(--flavor-on)) var(--flavor-hue));
+    --text: oklch(var(--df-l-text) calc(var(--df-c-text) * var(--flavor-on)) var(--flavor-hue));
+    --text-muted: oklch(var(--df-l-text-muted) calc(var(--df-c-text-muted) * var(--flavor-on)) var(--flavor-hue));
+    /* dimmed further: watermarks, empty-state art, disabled glyphs */
+    --text-faint: oklch(var(--df-l-text-faint) calc(var(--df-c-text-faint) * var(--flavor-on)) var(--flavor-hue));
+
+    /* fallback before the bundle runs, the palette lives in theme.ts */
+    --accent: #5b8def;
+    --accent-rgb: 91, 141, 239;
+    --accent-soft: rgba(91, 141, 239, 0.18);
+    /* own red, brighter than the red accent swatch so delete stays distinct */
+    --danger: #ff6b6b;
+    --danger-soft: rgba(255, 107, 107, 0.18);
+    --ok: #4fbf82;
+    --ok-soft: rgba(79, 191, 130, 0.18);
+    --warn: #d9a441;
+    --warn-soft: rgba(217, 164, 65, 0.18);
+    --radius: 10px;
+    /* tighter radius for dense chrome (table cells, chips, inputs in a row) */
+    --radius-sm: 6px;
+    --shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    /* the lift a card gets on top of its border — the ladder alone cannot carry
+       depth once two rungs sit next to each other */
+    --df-card-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+    /* the dimming behind a modal */
+    --df-scrim: rgba(0, 0, 0, 0.55);
+    /* the alternating wash on a zebra table: a tint *toward* the light end,
+       so it flips with the theme */
+    --df-zebra: rgba(255, 255, 255, 0.022);
+
+    /* Focus: one ring, used by every control in light DOM and shadow DOM. An
+       accent halo rather than a UA outline — visible on any rung of the ladder
+       and it follows the app accent. */
+    --focus-ring: 0 0 0 3px rgba(var(--accent-rgb), 0.32);
+    /* the same halo as a resting glow, for things that want to look "lit" */
+    --glow: 0 0 12px rgba(var(--accent-rgb), 0.28);
+
+    /* Motion. Components and utilities read these, so an app can slow the whole
+       UI down, speed it up, or (with --df-dur*: 0s) switch it off in one place. */
+    --df-dur-fast: 0.12s;
+    --df-dur: 0.2s;
+    --df-dur-slow: 0.42s;
+    /* organic ease-out: quick to leave, unhurried to settle */
+    --df-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* --- light mode ---------------------------------------------------------
+   theme.ts writes the *resolved* theme to <html data-theme>, so "auto" never
+   reaches CSS — it is resolved against prefers-color-scheme in JS and
+   re-resolved when the OS setting changes. That keeps the ladder defined once.
+
+   The rungs keep their jobs and swap direction: raised goes toward white
+   (a card is the lightest thing on the page), while header, dim and hover
+   tint *down* — on a white card a header bar can only read as a bar by
+   getting darker. Ordering by distance-from-page therefore still holds. */
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --df-l-dim: 0.92;
+    --df-c-dim: 0.012;
+    --df-l-bg: 0.967;
+    --df-c-bg: 0.008;
+    --df-l-raised: 0.995;
+    --df-c-raised: 0.004;
+    --df-l-header: 0.955;
+    --df-c-header: 0.014;
+    --df-l-hover: 0.89;
+    --df-c-hover: 0.02;
+    --df-l-border: 0.87;
+    --df-c-border: 0.018;
+    --df-l-border-strong: 0.78;
+    --df-c-border-strong: 0.03;
+    --df-l-text: 0.255;
+    --df-c-text: 0.03;
+    --df-l-text-muted: 0.48;
+    --df-c-text-muted: 0.03;
+    --df-l-text-faint: 0.64;
+    --df-c-text-faint: 0.028;
+
+    /* the semantic four are tuned for a dark field; on white they wash out,
+       so light mode darkens them and keeps the hue */
+    --danger: #c92a2a;
+    --danger-soft: rgba(201, 42, 42, 0.12);
+    --ok: #1b7f4d;
+    --ok-soft: rgba(27, 127, 77, 0.12);
+    --warn: #8a5d00;
+    --warn-soft: rgba(138, 93, 0, 0.12);
+
+    /* shadows are the main depth cue here, so they go softer and tighter —
+       a dark-mode shadow on a white page reads as dirt */
+    --shadow: 0 6px 20px rgba(16, 20, 32, 0.12);
+    --df-card-shadow: 0 1px 3px rgba(16, 20, 32, 0.1);
+    --df-scrim: rgba(16, 20, 32, 0.38);
+    --df-zebra: rgba(0, 0, 0, 0.022);
+}
+
+/* Global motion opt-out: zero the tokens so component transitions collapse too
+   (custom properties pierce shadow roots; the components have no @media of
+   their own), then stop the light-DOM animations. */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --df-dur-fast: 0s;
+        --df-dur: 0s;
+        --df-dur-slow: 0s;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    /* themed scrollbars (firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* themed scrollbars (webkit) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* the bundle is a deferred module, so custom elements upgrade after first
+   paint; until then they are unknown inline elements and slotted svgs render
+   at their default (huge) size — keep them hidden until defined */
+druid-navbar:not(:defined),
+druid-tabs:not(:defined),
+druid-tab:not(:defined),
+druid-button:not(:defined),
+druid-icon:not(:defined),
+druid-icon-button:not(:defined),
+druid-accent-picker:not(:defined),
+druid-flavor-picker:not(:defined),
+druid-theme-toggle:not(:defined),
+druid-footer:not(:defined),
+druid-login-card:not(:defined),
+druid-textarea:not(:defined),
+druid-log-view:not(:defined),
+druid-progress:not(:defined),
+druid-search:not(:defined),
+druid-chat-message:not(:defined),
+druid-tooltip:not(:defined),
+druid-popover:not(:defined),
+druid-subtabs:not(:defined),
+druid-table:not(:defined),
+druid-select:not(:defined),
+druid-dots:not(:defined) {
+    display: none;
+}
+
+/* <body class="df-shell-compact"> — density for a panel-width host (a browser
+   side panel, a popup): tight gutters, no max width. Density only; pair it with
+   df-shell-fixed to keep the fixed shell at that width too. */
+body.df-shell-compact {
+    --df-main-pad: 10px;
+    --df-main-max: none;
+    /* every druid-select on a panel-width page trades padding for label width;
+       <druid-select compact> is the same trade for one crowded control */
+    --df-select-pad: 4px 7px;
+    --df-select-chev: 12px;
+}
+
+/* The shell is a fixed-height flex column: navbar and footer stay put and only
+   the panel scrolls. Below 900px that model breaks down (see the flow tier at
+   the end of this file) and the page is handed back to document flow —
+   <body class="df-shell-fixed"> keeps the fixed shell at every width. */
+body {
+    margin: 0;
+    height: 100vh;
+    /* dvh excludes the mobile URL bar, which 100vh counts as visible */
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+/* ---------- layout ---------- */
+
+/* fixed page: navbar and footer stay, only the panel content scrolls.
+   --df-main-pad / --df-main-max are the density knobs (df-shell-compact sets
+   them for panel-width hosts); main itself is not to be overridden. */
+main {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: var(--df-main-max, 1100px);
+    margin: 0 auto;
+    padding: var(--df-main-pad, 30px 22px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* panels toggled by <druid-tabs> via data-tab-panel */
+.df-tab-panel {
+    display: none;
+}
+
+.df-tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.df-tab-panel.scroll.active {
+    overflow-y: auto;
+}
+
+/* panels toggled by <druid-subtabs> (its own scoped, boxed sub-tabs) */
+[data-subtab-panel] {
+    display: none;
+}
+
+[data-subtab-panel].active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+[data-subtab-panel].scroll.active {
+    overflow-y: auto;
+}
+
+/* ---------- card / boxed panel ----------
+   Wrap a tab panel's content in .df-card for the boxed look with a header
+   line; leave it out for the bare style. */
+
+.df-card {
+    display: flex;
+    flex-direction: column;
+    /* size to content; never absorb flex shrinkage in a scrolling panel */
+    flex-shrink: 0;
+    background: var(--df-panel-body-bg, var(--bg-raised));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    /* depth is a rung *and* a lift: at one rung apart two stacked cards read
+       as one field, so every card also casts the shadow */
+    box-shadow: var(--df-card-shadow);
+    overflow: hidden;
+    transition: border-color var(--df-dur) var(--df-ease);
+}
+
+/* stretch to fill the tab panel (give the body class "scroll") */
+.df-card.fill {
+    flex: 1;
+    min-height: 0;
+}
+
+/* the counterpart: size to content, but never grow past the panel — the card
+   stops at the panel's height and whatever is inside it scrolls instead. Its
+   body becomes a flex column so a single child (a .df-table-wrap, a
+   <druid-table>) can shrink and take the scrolling over. */
+.df-card.fit {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: 100%;
+}
+
+.df-card.fit > .df-card-body,
+.df-card-body.column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* .column is also a stacking primitive: it spaces its children like .df-stack
+   (the .fit body stays gapless — there one child takes the scroll over) */
+.df-card-body.column {
+    gap: 8px;
+}
+
+.df-card-body.column.gap-lg {
+    gap: 16px;
+}
+
+.df-card-body.column.gap-sm {
+    gap: 4px;
+}
+
+/* opt-in: the card answers the pointer with an accent-lit edge */
+.df-card.interactive:hover {
+    border-color: var(--df-accent, var(--accent));
+}
+
+/* The header is a *lighter* bar over the body — the same header/body split the
+   boxed components use, so a card and a <druid-log-view boxed> read alike.
+   Retarget both with --df-panel-header-bg / --df-panel-body-bg. */
+.df-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* the same bar at two other weights: .section for a card that titles a whole
+   page section (larger, accent-lit), .quiet for a small tile that should not
+   shout its own label */
+.df-card-header.section {
+    padding: 10px 12px;
+    color: var(--df-accent, var(--accent));
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+}
+
+.df-card-header.quiet {
+    padding: 6px 12px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.df-card-header .df-muted {
+    font-size: 0.85rem;
+}
+
+.df-card-body {
+    flex: 1;
+    min-height: 0;
+    padding: 12px;
+}
+
+.df-card-body.scroll {
+    overflow-y: auto;
+}
+
+/* the body as a sunken well — for output, tables and other data surfaces */
+.df-card-body.dim {
+    background: var(--bg-dim);
+}
+
+.df-card-body.flush {
+    padding: 0;
+}
+
+.df-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-top: 1px solid var(--border);
+}
+
+/* ---------- dialog (native <dialog>, the framework modal pattern) ----------
+   <dialog class="df-dialog"> + dialog.showModal(); a <form method="dialog">
+   inside closes it on submit. */
+
+dialog.df-dialog {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    min-width: min(340px, 92vw);
+    max-width: min(560px, 92vw);
+    /* open/close animation: fade + slight rise; allow-discrete keeps the
+       dialog displayed until the close transition finished */
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        overlay 0.18s ease allow-discrete,
+        display 0.18s ease allow-discrete;
+}
+
+dialog.df-dialog[open] {
+    opacity: 1;
+    transform: none;
+}
+
+@starting-style {
+    dialog.df-dialog[open] {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+}
+
+dialog.df-dialog::backdrop {
+    background: rgba(0, 0, 0, 0);
+    transition:
+        background 0.18s ease,
+        overlay 0.18s ease allow-discrete,
+        display 0.18s ease allow-discrete;
+}
+
+dialog.df-dialog[open]::backdrop {
+    background: var(--df-scrim);
+}
+
+@starting-style {
+    dialog.df-dialog[open]::backdrop {
+        background: rgba(0, 0, 0, 0);
+    }
+}
+
+dialog.df-dialog h3 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+}
+
+/* body text / input / button row for druids.confirm() and druids.prompt() */
+.df-dialog-text {
+    margin: 0 0 16px;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    /* honor newlines in the message */
+    white-space: pre-line;
+}
+
+.df-dialog-input {
+    width: 100%;
+    margin: 0 0 18px;
+}
+
+.df-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ---------- toasts (created by druids.toast()) ---------- */
+
+.df-toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.df-toast {
+    /* soft wash of the type color over the raised bg */
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    max-width: 340px;
+    animation: df-toast-in 0.2s ease-out;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.df-toast.ok {
+    background: linear-gradient(var(--ok-soft), var(--ok-soft)) var(--bg-raised);
+    border-left-color: var(--ok);
+}
+
+.df-toast.warn {
+    background: linear-gradient(var(--warn-soft), var(--warn-soft)) var(--bg-raised);
+    border-left-color: var(--warn);
+}
+
+.df-toast.danger {
+    background: linear-gradient(var(--danger-soft), var(--danger-soft)) var(--bg-raised);
+    border-left-color: var(--danger);
+}
+
+.df-toast.out {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+@keyframes df-toast-in {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ---------- forms (light DOM) ---------- */
+
+/* Text-ish controls read as sunken wells cut into the surface they sit on, so
+   an input is distinguishable from a card even when both are unfocused. */
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="email"],
+input[type="url"],
+input[type="tel"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="file"],
+textarea,
+select {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-dim);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+    transition:
+        border-color var(--df-dur) var(--df-ease),
+        box-shadow var(--df-dur) var(--df-ease);
+}
+
+/* One focus affordance for the whole framework: accent edge + accent halo.
+   :focus-visible so a click on an input does not light up the ring for mouse
+   users, but keyboard focus always shows. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+    outline: none;
+    border-color: var(--df-accent, var(--accent));
+    box-shadow: var(--focus-ring);
+}
+
+/* typing in a field still shows the accent edge, ring or not */
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--df-accent, var(--accent));
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+}
+
+select option {
+    background: var(--bg-raised);
+    color: var(--text);
+}
+
+/* the file input's own button, themed like a soft framework button */
+input[type="file"] {
+    padding: 5px 8px;
+}
+
+input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-header);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background var(--df-dur-fast) var(--df-ease);
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: var(--bg-hover);
+    border-color: var(--df-accent, var(--accent));
+}
+
+/* ---------- check controls ----------
+   Native inputs restyled in place (appearance: none), so they keep their
+   labels, form participation, keyboard behaviour and required/checked state.
+   The mark is drawn with the accent, the box stays a dim well. */
+
+input[type="checkbox"],
+input[type="radio"] {
+    appearance: none;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--bg-dim);
+    cursor: pointer;
+    transition:
+        background var(--df-dur-fast) var(--df-ease),
+        border-color var(--df-dur-fast) var(--df-ease),
+        box-shadow var(--df-dur) var(--df-ease);
+}
+
+input[type="radio"] {
+    border-radius: 50%;
+}
+
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+    border-color: var(--df-accent, var(--accent));
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    background: var(--df-accent, var(--accent));
+    border-color: var(--df-accent, var(--accent));
+}
+
+/* checkmark: two borders of a rotated box */
+input[type="checkbox"]:checked::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 8px;
+    margin: 1px auto 0;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(42deg);
+}
+
+input[type="checkbox"]:indeterminate {
+    background: var(--df-accent, var(--accent));
+    border-color: var(--df-accent, var(--accent));
+}
+
+input[type="checkbox"]:indeterminate::after {
+    content: "";
+    display: block;
+    width: 8px;
+    height: 2px;
+    margin: 6px auto;
+    background: var(--bg);
+}
+
+input[type="radio"]:checked::after {
+    content: "";
+    display: block;
+    width: 6px;
+    height: 6px;
+    margin: 4px auto;
+    border-radius: 50%;
+    background: var(--bg);
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+    cursor: not-allowed;
+}
+
+/* ---------- switch ----------
+   A checkbox wearing a track: <input type="checkbox" class="df-switch">.
+   Same element, same form value — only the paint differs from a checkbox. */
+
+input[type="checkbox"].df-switch {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    border-radius: 999px;
+}
+
+input[type="checkbox"].df-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transform: none;
+    transition:
+        transform var(--df-dur) var(--df-ease),
+        background var(--df-dur) var(--df-ease);
+}
+
+input[type="checkbox"].df-switch:checked::after {
+    background: var(--bg);
+    transform: translateX(14px);
+}
+
+/* ---------- range ---------- */
+
+input[type="range"] {
+    appearance: none;
+    width: 100%;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--bg-dim);
+    border: 1px solid var(--border);
+}
+
+input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--bg-dim);
+    border: 1px solid var(--border);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -6px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--df-accent, var(--accent));
+    box-shadow: var(--glow);
+    transition: transform var(--df-dur-fast) var(--df-ease);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--df-accent, var(--accent));
+    box-shadow: var(--glow);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+    transform: scale(1.15);
+}
+
+/* ---------- field (label + control + hint/error) ----------
+   <label class="df-field"><span class="df-label">Name</span>
+     <input type="text"><span class="df-hint">shown under the control</span></label>
+   .df-field-row puts the control before the text (checkbox / switch rows).
+   The .df-hint is the error slot too: .df-field.invalid tints control and hint.
+
+   A <druid-select> is NOT a labelable element, so a wrapping <label> names
+   nothing — use a <div class="df-field"> with a <span class="df-label">, and
+   give the select its own label="…" (it becomes the trigger's aria-label). */
+
+.df-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.df-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.df-hint {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.df-field-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+/* a field flagged invalid: the error tint reaches the control too */
+.df-field.invalid input,
+.df-field.invalid textarea,
+.df-field.invalid select {
+    border-color: var(--danger);
+}
+
+/* …and the hint slot doubles as the error line */
+.df-field.invalid .df-hint {
+    color: var(--danger);
+}
+
+/* The light-DOM components are displayed by tag selectors here, which outrank the
+   UA's [hidden] rule just as a shadow component's :host does — so they need the
+   same explicit opt-out (the shadow ones get it from host-hidden.ts). */
+druid-search[hidden],
+druid-textarea[hidden] {
+    display: none;
+}
+
+/* <druid-search> — light DOM (see druid-search.ts) */
+druid-search {
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+}
+
+druid-search svg {
+    position: absolute;
+    left: 10px;
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+druid-search input[type="search"] {
+    padding-left: 32px;
+    width: 100%;
+}
+
+/* <druid-textarea> — light DOM, so styled here; rows sets the default height in lines */
+druid-textarea {
+    display: block;
+}
+
+druid-textarea textarea {
+    display: block;
+    width: 100%;
+    resize: vertical;
+}
+
+druid-textarea[autosize] textarea {
+    overflow: hidden;
+    resize: none;
+}
+
+.df-muted {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* ---------- color utility classes ----------
+   Re-point a component's accent pair to another token; custom properties
+   inherit into shadow roots, so this recolors druid elements from plain
+   classes: <druid-button variant="soft" class="df-ok">Approve</druid-button> */
+
+.df-ok {
+    --df-accent: var(--ok);
+    --df-accent-soft: var(--ok-soft);
+}
+
+.df-warn {
+    --df-accent: var(--warn);
+    --df-accent-soft: var(--warn-soft);
+}
+
+.df-danger {
+    --df-accent: var(--danger);
+    --df-accent-soft: var(--danger-soft);
+}
+
+.df-form-error {
+    margin: 0;
+    color: var(--danger);
+    font-size: 0.85rem;
+}
+
+/* ---------- badge (status / capability / count pills) ----------
+   Neutral by default; the status modifiers wash it with a token color:
+   <span class="df-badge">7 ctx</span>
+   <span class="df-badge ok">ready</span>   (+ .warn / .danger / .accent) */
+
+.df-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.df-badge.ok {
+    background: var(--ok-soft);
+    border-color: transparent;
+    color: var(--ok);
+}
+
+.df-badge.warn {
+    background: var(--warn-soft);
+    border-color: transparent;
+    color: var(--warn);
+}
+
+.df-badge.danger {
+    background: var(--danger-soft);
+    border-color: transparent;
+    color: var(--danger);
+}
+
+.df-badge.accent {
+    background: var(--accent-soft);
+    border-color: transparent;
+    color: var(--accent);
+}
+
+/* ---------- stat (metric number + caption) ----------
+   A dashboard tile: drop into a .df-card-body.
+   <div class="df-stat-number">12</div><div class="df-stat-caption">Models</div> */
+
+.df-stat-number {
+    color: var(--text);
+    font-size: 1.9rem;
+    font-weight: 650;
+    line-height: 1.1;
+}
+
+.df-stat-caption {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* ---------- typography ----------
+   Element styling, not classes: an app writes plain <h2>/<p>/<code> and gets
+   the framework's rhythm. Tight margins — vertical space is the scarce thing
+   in a fixed-height panel. */
+
+h1,
+h2,
+h3,
+h4 {
+    margin: 0 0 8px;
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+}
+
+h1 {
+    font-size: 1.5rem;
+}
+
+h2 {
+    font-size: 1.15rem;
+}
+
+h3 {
+    font-size: 1rem;
+}
+
+h4 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* a heading directly after content needs the space back */
+* + h1,
+* + h2,
+* + h3,
+* + h4 {
+    margin-top: 20px;
+}
+
+p {
+    margin: 0 0 10px;
+    line-height: 1.55;
+}
+
+ul,
+ol {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+li::marker {
+    color: var(--df-accent, var(--accent));
+}
+
+hr,
+.df-divider {
+    height: 1px;
+    margin: 14px 0;
+    border: 0;
+    /* a rule that fades at both ends rather than hitting the edges */
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+}
+
+code,
+kbd,
+samp,
+pre {
+    font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+    font-size: 0.85em;
+}
+
+code {
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-dim);
+    color: var(--df-accent, var(--accent));
+}
+
+pre {
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-dim);
+    line-height: 1.5;
+}
+
+/* a <code> inside a <pre> is the block's own text, not an inline chip */
+pre code {
+    padding: 0;
+    background: none;
+    color: inherit;
+}
+
+kbd {
+    padding: 1px 6px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-header);
+    color: var(--text);
+    font-size: 0.78em;
+}
+
+small {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ---------- layout primitives ----------
+   The four arrangements every page needs, so apps stop hand-rolling flexbox.
+   All gap-based and all collapsing on narrow viewports (see the tier below). */
+
+.df-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.df-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.df-row.gap-lg,
+.df-stack.gap-lg {
+    gap: 16px;
+}
+
+.df-row.gap-sm,
+.df-stack.gap-sm {
+    gap: 4px;
+}
+
+/* a persistent rail beside a panel: sizes to its content instead of stretching
+   to the row, and rides along at the top of its column — so it never becomes a
+   second scrolling region competing with the panel next to it */
+.df-stack.sticky {
+    align-self: start;
+    position: sticky;
+    top: 0;
+}
+
+/* pushes what follows to the far end of a row */
+.df-spacer {
+    flex: 1;
+}
+
+.df-grid {
+    display: grid;
+    gap: 10px;
+    /* fills the width with as many columns as fit — no breakpoints needed */
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+}
+
+.df-grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.df-grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.df-grid.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* the action bar above a panel: controls left, buttons pushed right */
+.df-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.df-toolbar > .df-spacer {
+    flex: 1;
+}
+
+/* ---------- table ----------
+   <div class="df-table-wrap"><table class="df-table">…</table></div>
+   The wrap is the scroll container the sticky header needs; drop it for a
+   table that should size to its content.
+     .compact  denser rows          .zebra  alternating row wash
+     .fill     stretch to the panel  th.num / td.num  right-aligned numerics */
+
+.df-table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-dim);
+}
+
+/* inside a .df-card-body.flush the card already draws the frame */
+.df-card-body.flush > .df-table-wrap {
+    border: 0;
+    border-radius: 0;
+}
+
+.df-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+/* A table at width:100% can never outgrow its scroll container, so a narrow
+   viewport squeezes the columns instead of scrolling: one long cell wraps to
+   ten lines and the columns past it are unreadable. .wide gives the table a
+   width floor so the x-axis engages; --df-table-min-width tunes it.
+
+   The floor only scrolls if the table's ancestors can shrink: a grid track or
+   flex item still on its auto minimum grows to the floor instead, and the
+   page gets the scrollbar. Give any grid track minmax(0, ...) and any
+   flex/grid item min-width: 0. Same trap for the automatic 5-column floor in
+   the 720px tier, which needs no opt-in at all. */
+.df-table.wide {
+    min-width: var(--df-table-min-width, 620px);
+}
+
+.df-table th,
+.df-table td {
+    padding: 7px 12px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border);
+}
+
+.df-table.compact th,
+.df-table.compact td {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+}
+
+/* The header is the lit rung of the ladder, and it stays put while the body
+   scrolls under it — the reason the title of a table reads as a title. */
+.df-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-bottom: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.df-table tbody tr {
+    transition: background var(--df-dur-fast) var(--df-ease);
+}
+
+.df-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.df-table.zebra tbody tr:nth-child(even) {
+    background: var(--df-zebra);
+}
+
+.df-table.zebra tbody tr:nth-child(even):hover {
+    background: var(--bg-hover);
+}
+
+.df-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* the selected row is marked by an accent edge, not a loud fill */
+.df-table tbody tr.selected {
+    background: var(--df-accent-soft, var(--accent-soft));
+    box-shadow: inset 2px 0 0 var(--df-accent, var(--accent));
+}
+
+.df-table th.num,
+.df-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-table td.df-muted {
+    color: var(--text-muted);
+}
+
+.df-table tfoot td {
+    background: var(--df-panel-header-bg, var(--bg-header));
+    border-top: 1px solid var(--border-strong);
+    border-bottom: 0;
+    font-weight: 600;
+}
+
+/* sortable headers — <druid-table sortable> sets aria-sort and the caret */
+.df-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    transition: color var(--df-dur-fast) var(--df-ease);
+}
+
+.df-table th[data-sort]:hover {
+    color: var(--text);
+}
+
+.df-table th[data-sort]::after {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 6px;
+    vertical-align: middle;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid currentColor;
+    opacity: 0;
+    transition:
+        opacity var(--df-dur) var(--df-ease),
+        transform var(--df-dur) var(--df-ease);
+}
+
+.df-table th[data-sort]:hover::after {
+    opacity: 0.35;
+}
+
+.df-table th[aria-sort="ascending"],
+.df-table th[aria-sort="descending"] {
+    color: var(--df-accent, var(--accent));
+}
+
+.df-table th[aria-sort="ascending"]::after,
+.df-table th[aria-sort="descending"]::after {
+    opacity: 1;
+}
+
+.df-table th[aria-sort="descending"]::after {
+    transform: rotate(180deg);
+}
+
+/* ---------- alert (persistent inline message) ----------
+   The standing counterpart to druids.toast(): <div class="df-alert warn">.
+   Same wash-over-surface recipe as a toast, with an accent edge on the left. */
+
+.df-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 12px;
+    margin: 0 0 10px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--text-muted);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--text);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.df-alert-title {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+
+.df-alert.accent {
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--bg-raised);
+    border-left-color: var(--accent);
+}
+
+.df-alert.ok {
+    background: linear-gradient(var(--ok-soft), var(--ok-soft)) var(--bg-raised);
+    border-left-color: var(--ok);
+}
+
+.df-alert.warn {
+    background: linear-gradient(var(--warn-soft), var(--warn-soft)) var(--bg-raised);
+    border-left-color: var(--warn);
+}
+
+.df-alert.danger {
+    background: linear-gradient(var(--danger-soft), var(--danger-soft)) var(--bg-raised);
+    border-left-color: var(--danger);
+}
+
+/* ---------- busy states ----------
+   .df-spinner is an element on its own (<span class="df-spinner">) and inherits
+   the accent; .df-skeleton is a placeholder block sized by the app. */
+
+.df-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    vertical-align: -2px;
+    border: 2px solid var(--df-accent-soft, var(--accent-soft));
+    border-top-color: var(--df-accent, var(--accent));
+    border-radius: 50%;
+    animation: df-spin 0.7s linear infinite;
+}
+
+.df-spinner.small {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+}
+
+.df-spinner.large {
+    width: 22px;
+    height: 22px;
+    border-width: 3px;
+}
+
+@keyframes df-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.df-skeleton {
+    /* a sheen travelling across a dim block — content is coming */
+    background: linear-gradient(90deg, var(--bg-dim) 25%, var(--bg-header) 50%, var(--bg-dim) 75%);
+    background-size: 300% 100%;
+    border-radius: var(--radius-sm);
+    animation: df-shimmer 1.4s ease-in-out infinite;
+    /* so a bare <div class="df-skeleton"> is visible without sizing */
+    min-height: 12px;
+}
+
+@keyframes df-shimmer {
+    0% {
+        background-position: 150% 0;
+    }
+    100% {
+        background-position: -150% 0;
+    }
+}
+
+/* ---------- empty state ----------
+   <div class="df-empty"><p class="df-empty-title">No models</p>
+     <p class="df-hint">Pull one to get started.</p></div>
+   The brand leaf sits behind it as a faint watermark — the "nothing here yet"
+   marker, keyed off the accent so it belongs to the app's theme. */
+
+.df-empty {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-height: 120px;
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.df-empty::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 96px;
+    height: 96px;
+    transform: translate(-50%, -50%);
+    background: var(--df-accent, var(--accent));
+    /* the brand leaf, masked so it takes the accent; kept very faint */
+    mask: var(--df-empty-mark) center / contain no-repeat;
+    -webkit-mask: var(--df-empty-mark) center / contain no-repeat;
+    opacity: 0.06;
+    pointer-events: none;
+    animation: df-breathe 6s ease-in-out infinite;
+}
+
+.df-empty > * {
+    position: relative;
+}
+
+.df-empty-title {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* slow swell, so an idle panel is never completely static */
+@keyframes df-breathe {
+    0%,
+    100% {
+        opacity: 0.05;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.1;
+        transform: translate(-50%, -50%) scale(1.04);
+    }
+}
+
+/* ---------- entrance animations ----------
+   Opt-in utilities for content the app swaps in (a tab panel, a fresh row).
+   Both run off the shared motion tokens, so they vanish with reduced motion. */
+
+.df-animate-in {
+    animation: df-fade-in var(--df-dur-slow) var(--df-ease) both;
+}
+
+.df-animate-rise {
+    animation: df-rise var(--df-dur-slow) var(--df-ease) both;
+}
+
+@keyframes df-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes df-rise {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+/* ---------- login (light DOM, rendered by <druid-login-card>) ---------- */
+
+.df-login-body {
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.df-login-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: min(340px, 92vw);
+    padding: 30px 34px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.df-login-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.df-login-brand h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+}
+
+.df-login-brand .brand-leaf {
+    width: 34px;
+    height: 34px;
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent));
+    flex-shrink: 0;
+}
+
+.df-login-subtitle {
+    margin: 0 0 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.df-login-card .df-form-error {
+    padding: 8px 12px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+}
+
+.df-login-card label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text);
+}
+
+.df-login-card input {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 1rem;
+}
+
+.df-login-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+    font: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.df-login-submit:hover {
+    filter: brightness(1.12);
+}
+
+/* ---------- narrow viewports ----------
+   Two tiers. At 900px the *shell model* changes: a fixed-height page is right
+   on a desktop and wrong on a phone, where every panel would be squeezed into
+   what is left after the navbar and the footer — a tab showing a sliver of
+   itself, with the rest unreachable. So the page goes back to document flow and
+   the document scrolls. At 720px only the density gives.
+   Opt out of the flow tier with <body class="df-shell-fixed"> (kiosk apps that
+   really do want a fixed viewport at every width). */
+
+@media (max-width: 900px) {
+    body:not(.df-shell-fixed) {
+        height: auto;
+        min-height: 100dvh;
+    }
+
+    body:not(.df-shell-fixed) main {
+        overflow: visible;
+    }
+
+    /* panels size to their content and let the page scroll past them, instead
+       of each becoming its own little scrolling window */
+    body:not(.df-shell-fixed) .df-tab-panel.active,
+    body:not(.df-shell-fixed) [data-subtab-panel].active {
+        flex: 0 0 auto;
+    }
+
+    body:not(.df-shell-fixed) .df-tab-panel.scroll.active,
+    body:not(.df-shell-fixed) [data-subtab-panel].scroll.active,
+    body:not(.df-shell-fixed) .df-card-body.scroll {
+        overflow-y: visible;
+    }
+
+    body:not(.df-shell-fixed) .df-card.fill,
+    body:not(.df-shell-fixed) .df-card.fit {
+        flex: 0 0 auto;
+        max-height: none;
+    }
+
+    /* a rail stacks above the content it flanked; sticky would park it over
+       the page it is scrolling with */
+    body:not(.df-shell-fixed) .df-stack.sticky {
+        position: static;
+    }
+
+    /* the one thing that must stay capped: an unbounded log would otherwise
+       make the document as tall as its history */
+    body:not(.df-shell-fixed) druid-log-view {
+        max-height: 70dvh;
+    }
+}
+
+@media (max-width: 720px) {
+    main {
+        padding: var(--df-main-pad, 16px 12px);
+    }
+
+    .df-grid.cols-2,
+    .df-grid.cols-3,
+    .df-grid.cols-4 {
+        grid-template-columns: 1fr;
+    }
+
+    /* a toolbar's trailing buttons wrap to their own full-width line instead
+       of squeezing the control before them */
+    .df-toolbar > .df-spacer {
+        flex-basis: 100%;
+        height: 0;
+    }
+
+    .df-card-header,
+    .df-card-footer {
+        padding: 8px 10px;
+    }
+
+    .df-card-body {
+        padding: 10px;
+    }
+
+    .df-table th,
+    .df-table td {
+        padding: 6px 8px;
+    }
+
+    /* past four columns a squeezed table is unreadable, so scroll it instead —
+       the same floor .df-table.wide asks for, applied where it always hurts.
+       Ancestors must be able to shrink — see .df-table.wide above. */
+    .df-table:has(> thead > tr > th:nth-child(5)) {
+        min-width: var(--df-table-min-width, 620px);
+    }
+
+    .df-stat-number {
+        font-size: 1.5rem;
+    }
+
+    dialog.df-dialog {
+        padding: 18px 16px;
+    }
+
+    .df-toast-stack {
+        right: 10px;
+        left: 10px;
+        bottom: 10px;
+    }
+
+    .df-toast {
+        max-width: none;
+    }
+}
+</style><style>
+/* ===== GitHub layer — @primer/primitives 11.10.0 (dark / light default), mapped by role.
+   Lightness + chroma per rung come from Primer; the hue stays --flavor-hue and every
+   accent use stays --accent, so the flavor and accent pickers keep working. ===== */
+:root.gh {
+  --df-flavor-default-hue: 255;  /* Primer's hue: this layer's default tint — what neutral returns to */
+  --df-l-dim:0.176;--df-c-dim:0.014;--df-l-bg:0.176;--df-c-bg:0.014;--df-l-raised:0.22;--df-c-raised:0.018;--df-l-header:0.22;--df-c-header:0.018;--df-l-hover:0.292;--df-c-hover:0.02;--df-l-border:0.384;--df-c-border:0.018;--df-l-border-strong:0.529;--df-c-border-strong:0.018;--df-l-text:0.97;--df-c-text:0.01;--df-l-text-muted:0.677;--df-c-text-muted:0.016;--df-l-text-faint:0.529;--df-c-text-faint:0.018;
+  /* page = well = bgColor-default; card + header = bgColor-muted (card-bgColor);
+     hover = control-bgColor-hover; borders = borderColor-default / -emphasis */
+  --ok:#3fb950; --ok-soft:rgba(46,160,67,.15); --warn:#d29922; --warn-soft:rgba(187,128,9,.15);
+  --danger:#f85149; --danger-soft:rgba(248,81,73,.1);
+  --df-card-shadow: 0 1px 1px 0 rgba(1,4,9,.6), 0 1px 3px 0 rgba(1,4,9,.6);   /* shadow-resting-small */
+  --shadow: 0 0 0 1px var(--border), 0 6px 12px -3px rgba(1,4,9,.4), 0 6px 18px 0 rgba(1,4,9,.4); /* shadow-floating-small */
+  --df-scrim: rgba(33,40,48,.4);  /* overlay-backdrop-bgColor */
+  --df-zebra: transparent;
+  --gh-code: color-mix(in oklch, var(--text-faint) 20%, transparent);  /* bgColor-neutral-muted */
+}
+:root.gh[data-theme="light"] {
+  --df-l-dim:1.0;--df-c-dim:0.0;--df-l-bg:1.0;--df-c-bg:0.0;--df-l-raised:1.0;--df-c-raised:0.0;--df-l-header:0.978;--df-c-header:0.003;--df-l-hover:0.96;--df-c-hover:0.005;--df-l-border:0.881;--df-c-border:0.013;--df-l-border-strong:0.633;--df-c-border-strong:0.023;--df-l-text:0.254;--df-c-text:0.011;--df-l-text-muted:0.495;--df-c-text-muted:0.022;--df-l-text-faint:0.633;--df-c-text-faint:0.023;
+  --ok:#1a7f37; --ok-soft:#dafbe1; --warn:#9a6700; --warn-soft:#fff8c5; --danger:#d1242f; --danger-soft:#ffebe9;
+  --df-card-shadow: 0 1px 1px 0 rgba(31,35,40,.04), 0 1px 2px 0 rgba(31,35,40,.03);
+  --shadow: 0 0 0 1px color-mix(in oklch, var(--border) 25%, transparent), 0 6px 12px -3px rgba(37,41,46,.04), 0 6px 18px 0 rgba(37,41,46,.12);
+  --df-scrim: rgba(200,209,218,.4);
+  --gh-code: color-mix(in oklch, var(--text-faint) 12%, transparent);
+}
+/* the global header sits on bgColor-inset: #010409 in dark, #f6f8fa (inset = muted) in light */
+:root.gh { --gh-nav: oklch(0.104 calc(0.019 * var(--flavor-on)) var(--flavor-hue)); }
+:root.gh[data-theme="light"] { --gh-nav: oklch(0.978 calc(0.003 * var(--flavor-on)) var(--flavor-hue)); }
+:root.gh druid-navbar { --bg-raised: var(--gh-nav); }
+/* borderColor-muted = the default border at 70% — the dividers inside a box */
+:root.gh .df-table th, :root.gh .df-table td { border-bottom-color: color-mix(in oklch, var(--border) 70%, transparent); }
+:root.gh .df-table thead th { border-bottom-color: var(--border); }
+:root.gh code { background: var(--gh-code); }
+</style></head>
+<body data-druids-slug="ghpreview">
+<druid-navbar brand="Druids">
+  <druid-tab panel="a">Overview</druid-tab><druid-tab panel="b">Pull requests</druid-tab><druid-tab panel="c">Logs</druid-tab>
+  <druid-button slot="actions" id="ghswitch" variant="outline" toggle>GitHub</druid-button>
+</druid-navbar>
+<main><section class="df-tab-panel active scroll">
+ <div class="df-stack gap-lg">
+  <div class="df-alert accent"><div>Flip <b>GitHub</b> in the navbar, then try the theme toggle, the flavor droplet and the accent palette — all three drive both looks.</div></div>
+  <div class="df-grid cols-2">
+   <div class="df-stack gap-lg">
+    <div class="df-card"><div class="df-card-header">Models</div>
+     <div class="df-card-body flush"><div class="df-table-wrap"><table class="df-table">
+      <thead><tr><th>Name</th><th class="num">Size</th><th>State</th></tr></thead>
+      <tbody><tr><td>gemma-2</td><td class="num">8.1 GB</td><td><span class="df-badge ok">ready</span></td></tr>
+      <tr><td>llama-3</td><td class="num">14.2 GB</td><td><span class="df-badge warn">cold</span></td></tr>
+      <tr><td>mistral</td><td class="num">7.2 GB</td><td><span class="df-badge danger">failed</span></td></tr>
+      <tr class="selected"><td>qwen-3</td><td class="num">4.0 GB</td><td><span class="df-badge accent">loaded</span></td></tr>
+      <tr><td>phi-4</td><td class="num">9.1 GB</td><td><span class="df-badge">idle</span></td></tr></tbody>
+     </table></div></div></div>
+    <druid-subtabs active="m" heading="Details" boxed>
+     <druid-tab slot="tab" panel="m">Meta</druid-tab><druid-tab slot="tab" panel="f">Files</druid-tab>
+     <div data-subtab-panel="m"><p>Quantised to <code>Q4_K_M</code>, served on port <kbd>8080</kbd>. See <a href="#">the docs</a>.</p></div>
+     <div data-subtab-panel="f"><p>Files.</p></div>
+    </druid-subtabs>
+   </div>
+   <div class="df-stack gap-lg">
+    <div class="df-card"><div class="df-card-header">Settings</div>
+     <div class="df-card-body column">
+      <druid-progress value="72" max="100"></druid-progress>
+      <druid-progress class="df-danger" value="94" max="100"></druid-progress>
+      <div class="df-field"><span class="df-label">Model</span>
+       <druid-select label="Model" placeholder="Choose"><option value="a">gemma-2</option><option value="b">llama-3</option></druid-select>
+       <span class="df-hint">picked per request</span></div>
+      <div class="df-field"><span class="df-label">Name</span><input type="text" placeholder="an input"></div>
+      <label class="df-field df-field-row"><input type="checkbox" class="df-switch" checked><span class="df-label">Keep loaded</span></label>
+      <div class="df-row gap-sm"><druid-button variant="primary">Save</druid-button><druid-button>Cancel</druid-button><druid-button variant="soft">Soft</druid-button><druid-button variant="danger">Delete</druid-button></div>
+     </div></div>
+    <div class="df-card"><div class="df-card-header section">Stats</div>
+     <div class="df-card-body"><div class="df-row gap-lg">
+      <div><div class="df-stat-number">128</div><div class="df-stat-caption">requests</div></div>
+      <div><div class="df-stat-number">4.2s</div><div class="df-stat-caption">p95</div></div></div></div></div>
+    <div class="df-alert warn"><div>Context is 72% full.</div></div>
+   </div>
+  </div>
+ </div>
+</section></main>
+<druid-footer author="GitHub layer · Primer 11.10.0"></druid-footer>
+<script type="module">
+const v=URL.createObjectURL(new Blob(["/* lit-vendor.js - GENERATED third-party chunk: the Lit runtime (see package.json for the pinned version). Do not edit. */\nvar H=globalThis,L=H.ShadowRoot&&(H.ShadyCSS===void 0||H.ShadyCSS.nativeShadow)&&\"adoptedStyleSheets\"in Document.prototype&&\"replace\"in CSSStyleSheet.prototype,K=Symbol(),et=new WeakMap,C=class{constructor(t,e,s){if(this._$cssResult$=!0,s!==K)throw Error(\"CSSResult is not constructable. Use `unsafeCSS` or `css` instead.\");this.cssText=t,this.t=e}get styleSheet(){let t=this.o,e=this.t;if(L&&t===void 0){let s=e!==void 0&&e.length===1;s&&(t=et.get(e)),t===void 0&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),s&&et.set(e,t))}return t}toString(){return this.cssText}},st=i=>new C(typeof i==\"string\"?i:i+\"\",void 0,K),vt=(i,...t)=>{let e=i.length===1?i[0]:t.reduce((s,r,o)=>s+(n=>{if(n._$cssResult$===!0)return n.cssText;if(typeof n==\"number\")return n;throw Error(\"Value passed to 'css' function must be a 'css' function result: \"+n+\". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.\")})(r)+i[o+1],i[0]);return new C(e,i,K)},it=(i,t)=>{if(L)i.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let e of t){let s=document.createElement(\"style\"),r=H.litNonce;r!==void 0&&s.setAttribute(\"nonce\",r),s.textContent=e.cssText,i.appendChild(s)}},F=L?i=>i:i=>i instanceof CSSStyleSheet?(t=>{let e=\"\";for(let s of t.cssRules)e+=s.cssText;return st(e)})(i):i;var{is:Et,defineProperty:St,getOwnPropertyDescriptor:bt,getOwnPropertyNames:xt,getOwnPropertySymbols:Ct,getPrototypeOf:wt}=Object,D=globalThis,rt=D.trustedTypes,Pt=rt?rt.emptyScript:\"\",Tt=D.reactiveElementPolyfillSupport,w=(i,t)=>i,P={toAttribute(i,t){switch(t){case Boolean:i=i?Pt:null;break;case Object:case Array:i=i==null?i:JSON.stringify(i)}return i},fromAttribute(i,t){let e=i;switch(t){case Boolean:e=i!==null;break;case Number:e=i===null?null:Number(i);break;case Object:case Array:try{e=JSON.parse(i)}catch{e=null}}return e}},j=(i,t)=>!Et(i,t),ot={attribute:!0,type:String,converter:P,reflect:!1,useDefault:!1,hasChanged:j};Symbol.metadata??=Symbol(\"metadata\"),D.litPropertyMetadata??=new WeakMap;var f=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=ot){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){let s=Symbol(),r=this.getPropertyDescriptor(t,s,e);r!==void 0&&St(this.prototype,t,r)}}static getPropertyDescriptor(t,e,s){let{get:r,set:o}=bt(this.prototype,t)??{get(){return this[e]},set(n){this[e]=n}};return{get:r,set(n){let h=r?.call(this);o?.call(this,n),this.requestUpdate(t,h,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??ot}static _$Ei(){if(this.hasOwnProperty(w(\"elementProperties\")))return;let t=wt(this);t.finalize(),t.l!==void 0&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(w(\"finalized\")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(w(\"properties\"))){let e=this.properties,s=[...xt(e),...Ct(e)];for(let r of s)this.createProperty(r,e[r])}let t=this[Symbol.metadata];if(t!==null){let e=litPropertyMetadata.get(t);if(e!==void 0)for(let[s,r]of e)this.elementProperties.set(s,r)}this._$Eh=new Map;for(let[e,s]of this.elementProperties){let r=this._$Eu(e,s);r!==void 0&&this._$Eh.set(r,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){let e=[];if(Array.isArray(t)){let s=new Set(t.flat(1/0).reverse());for(let r of s)e.unshift(F(r))}else t!==void 0&&e.push(F(t));return e}static _$Eu(t,e){let s=e.attribute;return s===!1?void 0:typeof s==\"string\"?s:typeof t==\"string\"?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),this.renderRoot!==void 0&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){let t=new Map,e=this.constructor.elementProperties;for(let s of e.keys())this.hasOwnProperty(s)&&(t.set(s,this[s]),delete this[s]);t.size>0&&(this._$Ep=t)}createRenderRoot(){let t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return it(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,s){this._$AK(t,s)}_$ET(t,e){let s=this.constructor.elementProperties.get(t),r=this.constructor._$Eu(t,s);if(r!==void 0&&s.reflect===!0){let o=(s.converter?.toAttribute!==void 0?s.converter:P).toAttribute(e,s.type);this._$Em=t,o==null?this.removeAttribute(r):this.setAttribute(r,o),this._$Em=null}}_$AK(t,e){let s=this.constructor,r=s._$Eh.get(t);if(r!==void 0&&this._$Em!==r){let o=s.getPropertyOptions(r),n=typeof o.converter==\"function\"?{fromAttribute:o.converter}:o.converter?.fromAttribute!==void 0?o.converter:P;this._$Em=r;let h=n.fromAttribute(e,o.type);this[r]=h??this._$Ej?.get(r)??h,this._$Em=null}}requestUpdate(t,e,s,r=!1,o){if(t!==void 0){let n=this.constructor;if(r===!1&&(o=this[t]),s??=n.getPropertyOptions(t),!((s.hasChanged??j)(o,e)||s.useDefault&&s.reflect&&o===this._$Ej?.get(t)&&!this.hasAttribute(n._$Eu(t,s))))return;this.C(t,e,s)}this.isUpdatePending===!1&&(this._$ES=this._$EP())}C(t,e,{useDefault:s,reflect:r,wrapped:o},n){s&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,n??e??this[t]),o!==!0||n!==void 0)||(this._$AL.has(t)||(this.hasUpdated||s||(e=void 0),this._$AL.set(t,e)),r===!0&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let t=this.scheduleUpdate();return t!=null&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[r,o]of this._$Ep)this[r]=o;this._$Ep=void 0}let s=this.constructor.elementProperties;if(s.size>0)for(let[r,o]of s){let{wrapped:n}=o,h=this[r];n!==!0||this._$AL.has(r)||h===void 0||this.C(r,void 0,o,h)}}let t=!1,e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(s=>s.hostUpdate?.()),this.update(e)):this._$EM()}catch(s){throw t=!1,this._$EM(),s}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(t){}firstUpdated(t){}};f.elementStyles=[],f.shadowRootOptions={mode:\"open\"},f[w(\"elementProperties\")]=new Map,f[w(\"finalized\")]=new Map,Tt?.({ReactiveElement:f}),(D.reactiveElementVersions??=[]).push(\"2.1.2\");var Y=globalThis,nt=i=>i,q=Y.trustedTypes,at=q?q.createPolicy(\"lit-html\",{createHTML:i=>i}):void 0,Z=\"$lit$\",m=`lit$${Math.random().toFixed(9).slice(2)}$`,G=\"?\"+m,Ut=`<${G}>`,v=document,U=()=>v.createComment(\"\"),O=i=>i===null||typeof i!=\"object\"&&typeof i!=\"function\",Q=Array.isArray,ut=i=>Q(i)||typeof i?.[Symbol.iterator]==\"function\",J=`[ \t\n\\f\\r]`,T=/<(?:(!--|\\/[^a-zA-Z])|(\\/?[a-zA-Z][^>\\s]*)|(\\/?$))/g,ht=/-->/g,ct=/>/g,A=RegExp(`>|${J}(?:([^\\\\s\"'>=/]+)(${J}*=${J}*(?:[^ \t\n\\f\\r\"'\\`<>=]|(\"|')|))|$)`,\"g\"),lt=/'/g,pt=/\"/g,$t=/^(?:script|style|textarea|title)$/i,X=i=>(t,...e)=>({_$litType$:i,strings:t,values:e}),kt=X(1),Bt=X(2),It=X(3),_=Symbol.for(\"lit-noChange\"),l=Symbol.for(\"lit-nothing\"),dt=new WeakMap,g=v.createTreeWalker(v,129);function ft(i,t){if(!Q(i)||!i.hasOwnProperty(\"raw\"))throw Error(\"invalid template strings array\");return at!==void 0?at.createHTML(t):t}var mt=(i,t)=>{let e=i.length-1,s=[],r,o=t===2?\"<svg>\":t===3?\"<math>\":\"\",n=T;for(let h=0;h<e;h++){let a=i[h],p,d,c=-1,$=0;for(;$<a.length&&(n.lastIndex=$,d=n.exec(a),d!==null);)$=n.lastIndex,n===T?d[1]===\"!--\"?n=ht:d[1]!==void 0?n=ct:d[2]!==void 0?($t.test(d[2])&&(r=RegExp(\"</\"+d[2],\"g\")),n=A):d[3]!==void 0&&(n=A):n===A?d[0]===\">\"?(n=r??T,c=-1):d[1]===void 0?c=-2:(c=n.lastIndex-d[2].length,p=d[1],n=d[3]===void 0?A:d[3]==='\"'?pt:lt):n===pt||n===lt?n=A:n===ht||n===ct?n=T:(n=A,r=void 0);let y=n===A&&i[h+1].startsWith(\"/>\")?\" \":\"\";o+=n===T?a+Ut:c>=0?(s.push(p),a.slice(0,c)+Z+a.slice(c)+m+y):a+m+(c===-2?h:y)}return[ft(i,o+(i[e]||\"<?>\")+(t===2?\"</svg>\":t===3?\"</math>\":\"\")),s]},M=class i{constructor({strings:t,_$litType$:e},s){let r;this.parts=[];let o=0,n=0,h=t.length-1,a=this.parts,[p,d]=mt(t,e);if(this.el=i.createElement(p,s),g.currentNode=this.el.content,e===2||e===3){let c=this.el.content.firstChild;c.replaceWith(...c.childNodes)}for(;(r=g.nextNode())!==null&&a.length<h;){if(r.nodeType===1){if(r.hasAttributes())for(let c of r.getAttributeNames())if(c.endsWith(Z)){let $=d[n++],y=r.getAttribute(c).split(m),N=/([.?@])?(.*)/.exec($);a.push({type:1,index:o,name:N[2],strings:y,ctor:N[1]===\".\"?B:N[1]===\"?\"?I:N[1]===\"@\"?z:S}),r.removeAttribute(c)}else c.startsWith(m)&&(a.push({type:6,index:o}),r.removeAttribute(c));if($t.test(r.tagName)){let c=r.textContent.split(m),$=c.length-1;if($>0){r.textContent=q?q.emptyScript:\"\";for(let y=0;y<$;y++)r.append(c[y],U()),g.nextNode(),a.push({type:2,index:++o});r.append(c[$],U())}}}else if(r.nodeType===8)if(r.data===G)a.push({type:2,index:o});else{let c=-1;for(;(c=r.data.indexOf(m,c+1))!==-1;)a.push({type:7,index:o}),c+=m.length-1}o++}}static createElement(t,e){let s=v.createElement(\"template\");return s.innerHTML=t,s}};function E(i,t,e=i,s){if(t===_)return t;let r=s!==void 0?e._$Co?.[s]:e._$Cl,o=O(t)?void 0:t._$litDirective$;return r?.constructor!==o&&(r?._$AO?.(!1),o===void 0?r=void 0:(r=new o(i),r._$AT(i,e,s)),s!==void 0?(e._$Co??=[])[s]=r:e._$Cl=r),r!==void 0&&(t=E(i,r._$AS(i,t.values),r,s)),t}var k=class{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){let{el:{content:e},parts:s}=this._$AD,r=(t?.creationScope??v).importNode(e,!0);g.currentNode=r;let o=g.nextNode(),n=0,h=0,a=s[0];for(;a!==void 0;){if(n===a.index){let p;a.type===2?p=new b(o,o.nextSibling,this,t):a.type===1?p=new a.ctor(o,a.name,a.strings,this,t):a.type===6&&(p=new V(o,this,t)),this._$AV.push(p),a=s[++h]}n!==a?.index&&(o=g.nextNode(),n++)}return g.currentNode=v,r}p(t){let e=0;for(let s of this._$AV)s!==void 0&&(s.strings!==void 0?(s._$AI(t,s,e),e+=s.strings.length-2):s._$AI(t[e])),e++}},b=class i{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,s,r){this.type=2,this._$AH=l,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=s,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode,e=this._$AM;return e!==void 0&&t?.nodeType===11&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=E(this,t,e),O(t)?t===l||t==null||t===\"\"?(this._$AH!==l&&this._$AR(),this._$AH=l):t!==this._$AH&&t!==_&&this._(t):t._$litType$!==void 0?this.$(t):t.nodeType!==void 0?this.T(t):ut(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==l&&O(this._$AH)?this._$AA.nextSibling.data=t:this.T(v.createTextNode(t)),this._$AH=t}$(t){let{values:e,_$litType$:s}=t,r=typeof s==\"number\"?this._$AC(t):(s.el===void 0&&(s.el=M.createElement(ft(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===r)this._$AH.p(e);else{let o=new k(r,this),n=o.u(this.options);o.p(e),this.T(n),this._$AH=o}}_$AC(t){let e=dt.get(t.strings);return e===void 0&&dt.set(t.strings,e=new M(t)),e}k(t){Q(this._$AH)||(this._$AH=[],this._$AR());let e=this._$AH,s,r=0;for(let o of t)r===e.length?e.push(s=new i(this.O(U()),this.O(U()),this,this.options)):s=e[r],s._$AI(o),r++;r<e.length&&(this._$AR(s&&s._$AB.nextSibling,r),e.length=r)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){let s=nt(t).nextSibling;nt(t).remove(),t=s}}setConnected(t){this._$AM===void 0&&(this._$Cv=t,this._$AP?.(t))}},S=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,s,r,o){this.type=1,this._$AH=l,this._$AN=void 0,this.element=t,this.name=e,this._$AM=r,this.options=o,s.length>2||s[0]!==\"\"||s[1]!==\"\"?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=l}_$AI(t,e=this,s,r){let o=this.strings,n=!1;if(o===void 0)t=E(this,t,e,0),n=!O(t)||t!==this._$AH&&t!==_,n&&(this._$AH=t);else{let h=t,a,p;for(t=o[0],a=0;a<o.length-1;a++)p=E(this,h[s+a],e,a),p===_&&(p=this._$AH[a]),n||=!O(p)||p!==this._$AH[a],p===l?t=l:t!==l&&(t+=(p??\"\")+o[a+1]),this._$AH[a]=p}n&&!r&&this.j(t)}j(t){t===l?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??\"\")}},B=class extends S{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===l?void 0:t}},I=class extends S{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==l)}},z=class extends S{constructor(t,e,s,r,o){super(t,e,s,r,o),this.type=5}_$AI(t,e=this){if((t=E(this,t,e,0)??l)===_)return;let s=this._$AH,r=t===l&&s!==l||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,o=t!==l&&(s===l||r);r&&this.element.removeEventListener(this.name,this,s),o&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){typeof this._$AH==\"function\"?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}},V=class{constructor(t,e,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(t){E(this,t)}},zt={M:Z,P:m,A:G,C:1,L:mt,R:k,D:ut,V:E,I:b,H:S,N:I,U:z,B,F:V},Ot=Y.litHtmlPolyfillSupport;Ot?.(M,b),(Y.litHtmlVersions??=[]).push(\"3.3.3\");var _t=(i,t,e)=>{let s=e?.renderBefore??t,r=s._$litPart$;if(r===void 0){let o=e?.renderBefore??null;s._$litPart$=r=new b(t.insertBefore(U(),o),o,void 0,e??{})}return r._$AI(i),r};var tt=globalThis,x=class extends f{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){let e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=_t(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return _}};x._$litElement$=!0,x.finalized=!0,tt.litElementHydrateSupport?.({LitElement:x});var Mt=tt.litElementPolyfillSupport;Mt?.({LitElement:x});var Ft={_$AK:(i,t,e)=>{i._$AK(t,e)},_$AL:i=>i._$AL};(tt.litElementVersions??=[]).push(\"4.2.2\");var Gt=!1;var re=i=>(t,e)=>{e!==void 0?e.addInitializer(()=>{customElements.define(i,t)}):customElements.define(i,t)};var Rt={attribute:!0,type:String,converter:P,reflect:!1,hasChanged:j},Nt=(i=Rt,t,e)=>{let{kind:s,metadata:r}=e,o=globalThis.litPropertyMetadata.get(r);if(o===void 0&&globalThis.litPropertyMetadata.set(r,o=new Map),s===\"setter\"&&((i=Object.create(i)).wrapped=!0),o.set(e.name,i),s===\"accessor\"){let{name:n}=e;return{set(h){let a=t.get.call(this);t.set.call(this,h),this.requestUpdate(n,a,i,!0,h)},init(h){return h!==void 0&&this.C(n,void 0,i,h),h}}}if(s===\"setter\"){let{name:n}=e;return function(h){let a=this[n];t.call(this,h),this.requestUpdate(n,a,i,!0,h)}}throw Error(\"Unsupported decorator location: \"+s)};function yt(i){return(t,e)=>typeof e==\"object\"?Nt(i,t,e):((s,r,o)=>{let n=r.hasOwnProperty(o);return r.constructor.createProperty(o,s),n?Object.getOwnPropertyDescriptor(r,o):void 0})(i,t,e)}function ce(i){return yt({...i,state:!0,attribute:!1})}function pe(i){return(t,e)=>{let s=typeof t==\"function\"?t:t[e];Object.assign(s,i)}}var u=(i,t,e)=>(e.configurable=!0,e.enumerable=!0,Reflect.decorate&&typeof t!=\"object\"&&Object.defineProperty(i,t,e),e);function fe(i,t){return(e,s,r)=>{let o=n=>n.renderRoot?.querySelector(i)??null;if(t){let{get:n,set:h}=typeof s==\"object\"?e:r??(()=>{let a=Symbol();return{get(){return this[a]},set(p){this[a]=p}}})();return u(e,s,{get(){let a=n.call(this);return a===void 0&&(a=o(this),(a!==null||this.hasUpdated)&&h.call(this,a)),a}})}return u(e,s,{get(){return o(this)}})}}var Ht;function ye(i){return(t,e)=>u(t,e,{get(){return(this.renderRoot??(Ht??=document.createDocumentFragment())).querySelectorAll(i)}})}function ve(i){return(t,e)=>u(t,e,{async get(){return await this.updateComplete,this.renderRoot?.querySelector(i)??null}})}function be(i){return(t,e)=>{let{slot:s,selector:r}=i??{},o=\"slot\"+(s?`[name=${s}]`:\":not([name])\");return u(t,e,{get(){let n=this.renderRoot?.querySelector(o),h=n?.assignedElements(i)??[];return r===void 0?h:h.filter(a=>a.matches(r))}})}}function we(i){return(t,e)=>{let{slot:s}=i??{},r=\"slot\"+(s?`[name=${s}]`:\":not([name])\");return u(t,e,{get(){return this.renderRoot?.querySelector(r)?.assignedNodes(i)??[]}})}}var At={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},gt=i=>(...t)=>({_$litDirective$:i,values:t}),W=class{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,s){this._$Ct=t,this._$AM=e,this._$Ci=s}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}};var R=class extends W{constructor(t){if(super(t),this.it=l,t.type!==At.CHILD)throw Error(this.constructor.directiveName+\"() can only be used in child bindings\")}render(t){if(t===l||t==null)return this._t=void 0,this.it=t;if(t===_)return t;if(typeof t!=\"string\")throw Error(this.constructor.directiveName+\"() called with a non-string value\");if(t===this.it)return this._t;this.it=t;let e=[t];return e.raw=e,this._t={_$litType$:this.constructor.resultType,strings:e,values:[]}}};R.directiveName=\"unsafeHTML\",R.resultType=1;var Ie=gt(R);export{C as CSSResult,x as LitElement,f as ReactiveElement,R as UnsafeHTMLDirective,Ft as _$LE,zt as _$LH,it as adoptStyles,vt as css,re as customElement,P as defaultConverter,pe as eventOptions,F as getCompatibleStyle,kt as html,Gt as isServer,It as mathml,_ as noChange,j as notEqual,l as nothing,yt as property,fe as query,ye as queryAll,be as queryAssignedElements,we as queryAssignedNodes,ve as queryAsync,_t as render,Nt as standardProperty,ce as state,L as supportsAdoptingStyleSheets,Bt as svg,st as unsafeCSS,Ie as unsafeHTML};\n/*! Bundled license information:\n\n@lit/reactive-element/css-tag.js:\n  (**\n   * @license\n   * Copyright 2019 Google LLC\n   * SPDX-License-Identifier: BSD-3-Clause\n   *)\n\n@lit/reactive-element/reactive-element.js:\nlit-html/lit-html.js:\nlit-element/lit-element.js:\n@lit/reactive-element/decorators/custom-element.js:\n@lit/reactive-element/decorators/property.js:\n@lit/reactive-element/decorators/state.js:\n@lit/reactive-element/decorators/event-options.js:\n@lit/reactive-element/decorators/base.js:\n@lit/reactive-element/decorators/query.js:\n@lit/reactive-element/decorators/query-all.js:\n@lit/reactive-element/decorators/query-async.js:\n@lit/reactive-element/decorators/query-assigned-nodes.js:\nlit-html/directive.js:\nlit-html/directives/unsafe-html.js:\n  (**\n   * @license\n   * Copyright 2017 Google LLC\n   * SPDX-License-Identifier: BSD-3-Clause\n   *)\n\nlit-html/is-server.js:\n  (**\n   * @license\n   * Copyright 2022 Google LLC\n   * SPDX-License-Identifier: BSD-3-Clause\n   *)\n\n@lit/reactive-element/decorators/query-assigned-elements.js:\n  (**\n   * @license\n   * Copyright 2021 Google LLC\n   * SPDX-License-Identifier: BSD-3-Clause\n   *)\n*/\n"],{type:"text/javascript"}));
+await import(URL.createObjectURL(new Blob(["/* druids.js - GENERATED bundle of the druids components. Do not edit; run `npm run build` in the framework repo. Imports the Lit runtime from ./lit-vendor.js */\nvar Gt=Object.defineProperty;var Yt=Object.getOwnPropertyDescriptor;var o=(r,n,e,t)=>{for(var a=t>1?void 0:t?Yt(n,e):n,s=r.length-1,i;s>=0;s--)(i=r[s])&&(a=(t?i(n,e,a):i(a))||a);return t&&a&&Gt(n,e,a),a};import{svg as Qt}from\"./lit-vendor.js\";var mt=`<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\" role=\"img\" aria-label=\"druid leaf\">\n  <path d=\"M161.653046,399.999817 C154.740601,401.819580 148.197983,403.485931 140.964203,405.328339 C143.300949,398.876709 147.585297,394.552399 150.854614,389.774078 C157.119476,380.617584 162.993607,371.198853 169.363403,362.125793 C179.465057,347.737091 189.789291,333.498749 200.282959,319.392944 C210.382401,305.817047 220.998642,292.638702 232.514923,280.217529 C241.550476,270.472015 250.401245,260.541473 259.734680,251.088654 C280.223938,230.337402 302.554565,211.630844 326.749542,195.441132 C347.024261,181.874634 367.598602,168.649506 389.690826,157.994659 C399.421875,153.301498 408.772278,147.815872 418.858276,143.836670 C423.196838,142.124985 424.255585,138.644821 423.508484,134.490234 C422.754303,130.296265 419.372925,130.517426 416.115997,130.303925 C411.176117,129.980103 407.105499,132.563690 402.834076,134.158279 C373.584320,145.077774 344.707703,156.941544 316.885315,171.144455 C302.845642,178.311493 288.677216,185.441345 275.717255,194.449326 C256.798645,207.598969 238.426941,221.453186 221.125946,236.802277 C206.129456,250.106873 192.446732,264.611450 179.609970,279.814606 C167.011032,294.736115 154.676697,309.938629 143.856415,326.368042 C138.263611,334.860107 131.822968,343.010712 126.187492,351.505615 C119.312691,361.868683 112.407066,372.234344 105.550896,382.621033 C95.976166,397.126282 86.865120,411.948364 75.883949,427.049866 C73.300262,421.101929 70.559044,416.166992 68.967026,410.885620 C62.459133,389.296234 58.920681,367.191864 57.599663,344.654816 C56.505871,325.994446 56.586586,307.369873 57.838108,288.759003 C59.695866,261.133118 64.422264,234.071854 73.093628,207.637100 C79.899452,186.889435 89.596893,167.722107 101.492874,149.593735 C112.234154,133.225037 125.143143,118.711464 140.423553,106.388634 C141.716278,105.346123 143.140594,104.462517 144.533829,103.551041 C145.065598,103.203140 145.681900,102.984467 146.848740,102.423904 C140.301819,139.022415 153.211868,164.378769 189.795456,173.184509 C212.610229,178.676071 236.658432,166.086212 246.422424,145.702133 C262.108124,112.955391 249.943970,88.321388 221.187988,68.680672 C232.588699,66.086006 243.132050,64.271500 253.841064,63.463894 C292.928650,60.516117 331.325531,65.403152 369.142975,74.752647 C402.618042,83.028595 435.088287,94.510056 466.682831,108.392632 C471.698181,110.596367 476.763184,112.690880 481.844116,114.739426 C483.424255,115.376503 484.914734,116.006378 486.065125,117.954468 C481.675659,123.513611 477.093292,129.133804 472.709137,134.904556 C460.426514,151.071808 449.541565,168.102203 439.904968,186.014893 C428.922302,206.429703 419.962677,227.659958 412.327759,249.479874 C405.243866,269.724945 398.746857,290.178741 391.458588,310.348083 C382.636841,334.761139 372.746307,358.792633 358.643372,380.705078 C337.772736,413.132904 312.083374,440.598175 276.035095,456.528534 C253.530579,466.473633 229.806122,470.718933 205.243423,471.541626 C175.756897,472.529236 147.341080,467.167419 119.300407,458.841064 C118.507309,458.605530 117.739311,458.255341 117.003677,457.873688 C116.764229,457.749451 116.665291,457.354340 116.279152,456.712616 C120.412254,454.450073 124.948265,454.054443 129.410583,453.350098 C145.054062,450.880890 159.976471,445.604492 175.090485,441.186340 C197.952118,434.503418 219.941406,425.467499 241.093918,414.441132 C258.250336,405.497894 273.878998,394.258881 289.205841,382.581573 C294.162933,378.804779 294.328796,371.686432 289.494049,367.882721 C283.566559,363.219330 278.500549,357.709656 273.097443,352.527832 C269.031586,348.628510 263.429993,347.839386 259.109619,351.299927 C242.362946,364.713623 223.530396,374.561310 204.320374,383.768860 C192.785828,389.297485 180.975433,394.157562 168.563339,397.436371 C166.327011,398.027161 164.200211,399.032501 161.653046,399.999817 z\" />\n</svg>\n`;var Y=/\\bd=\"([^\"]+)\"/.exec(mt)?.[1]??\"\";function Pe(){return Qt`<svg class=\"brand-leaf\" viewBox=\"0 0 512 512\" fill=\"currentColor\" aria-hidden=\"true\" focusable=\"false\"><path d=${Y} /></svg>`}var Ve={default:\"blue\",accents:[{name:\"teal\",hex:\"#3fbdbd\",hue:195},{name:\"blue\",hex:\"#5b8def\",hue:262},{name:\"purple\",hex:\"#9d7bef\",hue:295},{name:\"pink\",hex:\"#ffa6c9\",hue:355},{name:\"red\",hex:\"#ff355e\",hue:16},{name:\"orange\",hex:\"#ffa800\",hue:72},{name:\"yellow\",hex:\"#ffee8c\",hue:100},{name:\"lime\",hex:\"#ccff00\",hue:123},{name:\"green\",hex:\"#80ef80\",hue:144}]};var xe=Ve.accents,H=xe.map(r=>r.hex),yt=xe.find(r=>r.name===Ve.default)?.hex??H[0],je=\"rainbow\",Me=xe.map(r=>({name:r.name,hue:r.hue,hex:r.hex})),Te=Me.map(r=>r.name),le=\"neutral\",ft=4e4,ge=null;function de(r){return`${document.body?.dataset.druidsSlug||\"druids\"}-${r}`}function Le(r){return[parseInt(r.slice(1,3),16),parseInt(r.slice(3,5),16),parseInt(r.slice(5,7),16)]}function vt(r,n,e){return`#${(1<<24|r<<16|n<<8|e).toString(16).slice(1)}`}function bt(r,n,e){let t=a=>{let s=a/255;return s<=.03928?s/12.92:Math.pow((s+.055)/1.055,2.4)};return .2126*t(r)+.7152*t(n)+.0722*t(e)}var gt=1.05/4.5-.05;function Jt(r,n,e){if(bt(r,n,e)<=gt)return[r,n,e];let t=0,a=1;for(let s=0;s<18;s++){let i=(t+a)/2;bt(r*i,n*i,e*i)>gt?a=i:t=i}return[Math.round(r*t),Math.round(n*t),Math.round(e*t)]}function Ke(r,n,e){let t=document.documentElement;t.style.setProperty(\"--accent-soft\",`rgba(${r}, ${n}, ${e}, 0.18)`);let[a,s,i]=$e===\"light\"?Jt(r,n,e):[r,n,e];return t.style.setProperty(\"--accent\",vt(a,s,i)),t.style.setProperty(\"--accent-rgb\",`${a}, ${s}, ${i}`),vt(r,n,e)}function wt(r){let n=document.querySelector(\"link[rel='icon']\");if(!n)return;let e=`<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><path fill=\"${r}\" d=\"${Y}\"/></svg>`;n.href=\"data:image/svg+xml,\"+encodeURIComponent(e)}function ye(){ge&&(clearInterval(ge),ge=null)}function ce(){ye();let r=performance.now(),n=-1;ge=setInterval(()=>{let e=(performance.now()-r)%ft/ft*H.length,t=Math.floor(e),a=e-t,s=Le(H[t]),i=Le(H[(t+1)%H.length]),l=Ke(Math.round(s[0]+(i[0]-s[0])*a),Math.round(s[1]+(i[1]-s[1])*a),Math.round(s[2]+(i[2]-s[2])*a));t!==n&&(wt(l),n=t)},120)}function pe(r){ye(),kt=r;let[n,e,t]=Le(r);Ke(n,e,t),wt(r)}function Ue(r){localStorage.setItem(de(\"accent\"),r)}function Dt(){let r=localStorage.getItem(de(\"accent\"));r===je?ce():pe(/^#[0-9a-f]{6}$/i.test(r||\"\")?r:yt)}function eo(){let r=`<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><path fill=\"#000\" d=\"${Y}\"/></svg>`;document.documentElement.style.setProperty(\"--df-empty-mark\",`url(\"data:image/svg+xml,${encodeURIComponent(r)}\")`)}var R=[\"auto\",\"light\",\"dark\"],We=\"auto\",se=We,$e=\"dark\",kt=yt,Ce=null;function to(){return Ce?.matches?\"light\":\"dark\"}function oo(){se===\"auto\"&&Q(\"auto\")}function X(){return $e}function we(){return se}function Q(r){if(se=R.includes(r)?r:We,se===\"auto\"&&!Ce&&(Ce=window.matchMedia(\"(prefers-color-scheme: light)\"),Ce.addEventListener(\"change\",oo)),$e=se===\"auto\"?to():se,document.documentElement.dataset.theme=$e,!ge){let[n,e,t]=Le(kt);Ke(n,e,t)}}function Et(r){localStorage.setItem(de(\"theme\"),r)}function _e(){let r=localStorage.getItem(de(\"theme\"));return r&&R.includes(r)?r:We}function he(r){let n=document.documentElement;if(r===le){He();return}let e=Me.find(t=>t.name===r);e&&(n.style.setProperty(\"--flavor-hue\",String(e.hue)),n.style.setProperty(\"--flavor-on\",\"1\"))}function He(){let r=document.documentElement;r.style.removeProperty(\"--flavor-hue\"),r.style.removeProperty(\"--flavor-on\")}function Ct(r){localStorage.setItem(de(\"flavor\"),r)}function Ge(){let r=localStorage.getItem(de(\"flavor\"));return r===le||Te.includes(r||\"\")?r:null}function ro(){let r=Ge();r&&he(r)}function xt(){Q(_e()),Dt(),ro()}eo();document.body?xt():document.addEventListener(\"DOMContentLoaded\",xt);import{css as no,html as Lt,LitElement as io,nothing as Ye}from\"./lit-vendor.js\";import{customElement as so,property as ue}from\"./lit-vendor.js\";import{css as ao}from\"./lit-vendor.js\";var p=ao`\n    :host([hidden]) {\n        display: none;\n    }\n`;var A=class extends io{constructor(){super(...arguments);this.variant=\"default\";this.type=\"button\";this.disabled=!1;this.active=!1;this.toggle=!1;this.loading=!1}onClick(e){if(this.loading)return;if(this.toggle){this.active=!this.active,this.dispatchEvent(new CustomEvent(\"toggle-change\",{detail:{active:this.active},bubbles:!0}));return}if(this.type!==\"submit\")return;let t=this.closest(\"form\");t&&(e.preventDefault(),t.requestSubmit())}render(){return Lt`\n            <button\n                part=\"button\"\n                ?disabled=${this.disabled}\n                aria-pressed=${this.toggle?String(this.active):Ye}\n                aria-busy=${this.loading?\"true\":Ye}\n                @click=${this.onClick}\n            >\n                <span class=\"label\"><slot></slot></span>\n                ${this.loading?Lt`<span class=\"spinner\" aria-hidden=\"true\"></span>`:Ye}\n            </button>\n        `}};A.styles=[no`\n            :host {\n                display: inline-flex;\n            }\n\n            button {\n                display: inline-flex;\n                align-items: center;\n                justify-content: center;\n                gap: 6px;\n                padding: 6px 14px;\n                border-radius: var(--radius);\n                border: 1px solid var(--border);\n                background: var(--bg-raised);\n                color: var(--text);\n                font: inherit;\n                font-size: 0.85rem;\n                cursor: pointer;\n                transition:\n                    background var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    border-color var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    box-shadow var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            button:focus-visible {\n                outline: none;\n                box-shadow: var(--focus-ring);\n            }\n\n            button:hover {\n                background: var(--bg-hover);\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            :host([active]) button {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: var(--df-accent, var(--accent));\n                color: var(--df-accent, var(--accent));\n            }\n\n            /* dark text, pastel accents give no contrast for white */\n            :host([variant=\"primary\"]) button {\n                background: var(--df-accent, var(--accent));\n                border-color: var(--df-accent, var(--accent));\n                color: var(--bg);\n                font-weight: 600;\n            }\n\n            :host([variant=\"primary\"]) button:hover {\n                filter: brightness(1.12);\n            }\n\n            :host([variant=\"danger\"]) button:hover {\n                border-color: var(--danger);\n                color: var(--danger);\n            }\n\n            /* soft: colored text on translucent wash, border shows on hover */\n            :host([variant=\"soft\"]) button {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: transparent;\n                color: var(--df-accent, var(--accent));\n            }\n\n            :host([variant=\"soft\"]) button:hover {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            :host([variant=\"soft-danger\"]) button {\n                background: var(--danger-soft);\n                border-color: transparent;\n                color: var(--danger);\n            }\n\n            :host([variant=\"soft-danger\"]) button:hover {\n                background: var(--danger-soft);\n                border-color: var(--danger);\n            }\n\n            /* outline: the dropdown-trigger look \u2014 base bg, accent border at rest */\n            :host([variant=\"outline\"]) button {\n                background: var(--df-select-bg, var(--bg));\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            :host([variant=\"outline\"]) button:hover {\n                background: var(--bg-hover);\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            :host([disabled]) button {\n                opacity: 0.45;\n                cursor: default;\n                pointer-events: none;\n            }\n\n            /* loading: the label stays (so the button keeps its width and the page\n               does not jump) but fades out behind a centered spinner */\n            :host([loading]) button {\n                cursor: default;\n                pointer-events: none;\n                position: relative;\n            }\n\n            .label {\n                display: inline-flex;\n                align-items: center;\n                gap: 6px;\n                transition: opacity var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            :host([loading]) .label {\n                opacity: 0.25;\n            }\n\n            .spinner {\n                position: absolute;\n                width: 13px;\n                height: 13px;\n                border: 2px solid transparent;\n                border-top-color: currentColor;\n                border-right-color: currentColor;\n                border-radius: 50%;\n                animation: df-btn-spin 0.7s linear infinite;\n            }\n\n            @keyframes df-btn-spin {\n                to {\n                    transform: rotate(360deg);\n                }\n            }\n\n            @media (prefers-reduced-motion: reduce) {\n                .spinner {\n                    animation-duration: 2.4s;\n                }\n            }\n        `,p],o([ue()],A.prototype,\"variant\",2),o([ue()],A.prototype,\"type\",2),o([ue({type:Boolean,reflect:!0})],A.prototype,\"disabled\",2),o([ue({type:Boolean,reflect:!0})],A.prototype,\"active\",2),o([ue({type:Boolean})],A.prototype,\"toggle\",2),o([ue({type:Boolean,reflect:!0})],A.prototype,\"loading\",2),A=o([so(\"druid-button\")],A);import{css as lo,html as co,LitElement as po,nothing as ho}from\"./lit-vendor.js\";import{customElement as uo,property as Mt,state as mo,unsafeHTML as fo}from\"./lit-vendor.js\";var Xe=new Map,Ae=new Set;function Qe(r,n){Xe.set(r,n);for(let e of Ae)e()}function Ze(r){for(let[n,e]of Object.entries(r))Xe.set(n,e);for(let n of Ae)n()}function Je(r){return Xe.get(r)}function $t(r){return Ae.add(r),()=>Ae.delete(r)}var V=class extends po{constructor(){super(...arguments);this.name=\"\";this.size=\"\";this.rev=0}connectedCallback(){super.connectedCallback(),this.unsubscribe=$t(()=>this.rev++)}disconnectedCallback(){super.disconnectedCallback(),this.unsubscribe?.()}willUpdate(e){e.has(\"size\")&&(this.size?(this.style.width=this.size,this.style.height=this.size):(this.style.removeProperty(\"width\"),this.style.removeProperty(\"height\")))}render(){let e=this.name?Je(this.name):void 0;return e?co`${fo(e)}`:ho}};V.styles=[lo`\n            :host {\n                display: inline-flex;\n                width: 1em;\n                height: 1em;\n                line-height: 0;\n                flex-shrink: 0;\n            }\n\n            /* override any width/height=\"24\" on the registered svg (CSS beats attrs) */\n            svg {\n                width: 100%;\n                height: 100%;\n                display: block;\n            }\n        `,p],o([Mt()],V.prototype,\"name\",2),o([Mt()],V.prototype,\"size\",2),o([mo()],V.prototype,\"rev\",2),V=o([uo(\"druid-icon\")],V);import{css as vo,html as ke,LitElement as bo,nothing as Tt}from\"./lit-vendor.js\";import{customElement as go,property as I}from\"./lit-vendor.js\";var w=class extends bo{constructor(){super(...arguments);this.variant=\"default\";this.label=\"\";this.icon=\"\";this.href=\"\";this.active=!1;this.toggle=!1;this.circle=!1;this.small=!1;this.loading=!1}onClick(){this.loading||!this.toggle||(this.active=!this.active,this.dispatchEvent(new CustomEvent(\"toggle-change\",{detail:{active:this.active},bubbles:!0})))}render(){let e=this.loading?ke`<span class=\"spinner\" aria-hidden=\"true\"></span>`:this.icon?ke`<druid-icon name=${this.icon} size=${this.small?\"14px\":\"18px\"}></druid-icon>`:ke`<slot></slot>`;return this.href?ke`<a part=\"button\" href=${this.href} title=${this.label} aria-label=${this.label}>${e}</a>`:ke`<button\n                  part=\"button\"\n                  title=${this.label}\n                  aria-label=${this.label}\n                  aria-pressed=${this.toggle?String(this.active):Tt}\n                  aria-busy=${this.loading?\"true\":Tt}\n                  @click=${this.onClick}\n              >\n                  ${e}\n              </button>`}};w.styles=[vo`\n            :host {\n                display: inline-flex;\n            }\n\n            button,\n            a {\n                display: inline-flex;\n                align-items: center;\n                justify-content: center;\n                width: 36px;\n                height: 36px;\n                border-radius: var(--radius);\n                border: 1px solid var(--df-icon-btn-border, var(--border));\n                background: none;\n                color: var(--df-icon-btn-color, var(--text-muted));\n                cursor: pointer;\n                font: inherit;\n                transition:\n                    background var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    color var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    border-color var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    box-shadow var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            button:focus-visible,\n            a:focus-visible {\n                outline: none;\n                box-shadow: var(--focus-ring);\n            }\n\n            ::slotted(svg),\n            slot {\n                width: 18px;\n                height: 18px;\n            }\n\n            :host([circle]) button,\n            :host([circle]) a {\n                border-radius: 50%;\n            }\n\n            /* soft: colored icon on a translucent wash at rest, border on hover\n               (mirrors druid-button's soft / soft-danger variants) */\n            :host([variant=\"soft\"]) button,\n            :host([variant=\"soft\"]) a {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: transparent;\n                color: var(--df-accent, var(--accent));\n            }\n\n            :host([variant=\"soft\"]) button:hover,\n            :host([variant=\"soft\"]) a:hover {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: var(--df-accent, var(--accent));\n                color: var(--df-accent, var(--accent));\n            }\n\n            :host([variant=\"soft-danger\"]) button,\n            :host([variant=\"soft-danger\"]) a {\n                background: var(--danger-soft);\n                border-color: transparent;\n                color: var(--danger);\n            }\n\n            :host([variant=\"soft-danger\"]) button:hover,\n            :host([variant=\"soft-danger\"]) a:hover {\n                background: var(--danger-soft);\n                border-color: var(--danger);\n                color: var(--danger);\n            }\n\n            :host([small]) button,\n            :host([small]) a {\n                width: 28px;\n                height: 28px;\n            }\n\n            :host([small]) ::slotted(svg),\n            :host([small]) slot {\n                width: 14px;\n                height: 14px;\n            }\n\n            button:hover,\n            a:hover {\n                background: var(--df-icon-btn-hover-bg, var(--bg-hover));\n                color: var(--df-icon-btn-hover-color, var(--text));\n            }\n\n            :host([active]) button,\n            :host([active]) a {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: var(--df-accent, var(--accent));\n                color: var(--df-accent, var(--accent));\n            }\n\n            :host([loading]) button {\n                cursor: default;\n                pointer-events: none;\n            }\n\n            .spinner {\n                width: 14px;\n                height: 14px;\n                border: 2px solid transparent;\n                border-top-color: currentColor;\n                border-right-color: currentColor;\n                border-radius: 50%;\n                animation: df-btn-spin 0.7s linear infinite;\n            }\n\n            :host([small]) .spinner {\n                width: 11px;\n                height: 11px;\n                border-width: 1.5px;\n            }\n\n            @keyframes df-btn-spin {\n                to {\n                    transform: rotate(360deg);\n                }\n            }\n\n            @media (prefers-reduced-motion: reduce) {\n                .spinner {\n                    animation-duration: 2.4s;\n                }\n            }\n        `,p],o([I()],w.prototype,\"variant\",2),o([I()],w.prototype,\"label\",2),o([I()],w.prototype,\"icon\",2),o([I()],w.prototype,\"href\",2),o([I({type:Boolean,reflect:!0})],w.prototype,\"active\",2),o([I({type:Boolean})],w.prototype,\"toggle\",2),o([I({type:Boolean,reflect:!0})],w.prototype,\"circle\",2),o([I({type:Boolean,reflect:!0})],w.prototype,\"small\",2),o([I({type:Boolean,reflect:!0})],w.prototype,\"loading\",2),w=o([go(\"druid-icon-button\")],w);import{css as xo,html as De,LitElement as yo,svg as wo}from\"./lit-vendor.js\";import{customElement as ko,state as Eo}from\"./lit-vendor.js\";var me=class extends yo{constructor(){super(...arguments);this.open=!1;this.onOutsideClick=e=>{this.open&&!e.composedPath().includes(this)&&(this.open=!1)}}connectedCallback(){super.connectedCallback(),document.addEventListener(\"click\",this.onOutsideClick)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(\"click\",this.onOutsideClick)}pick(e){pe(e),Ue(e),this.open=!1}pickRainbow(){ce(),Ue(je),this.open=!1}render(){let e=wo`\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n                <path d=\"M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z\" />\n                <circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\" />\n                <circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\" />\n                <circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\" />\n                <circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" />\n            </svg>`;return De`\n            <button class=\"trigger\" title=\"Accent color\" aria-label=\"Accent color\" @click=${()=>this.open=!this.open}>\n                ${e}\n            </button>\n            ${this.open?De`\n                      <div class=\"popover\">\n                          ${xe.map(t=>De`\n                                  <button\n                                      class=\"swatch\"\n                                      style=\"background: ${t.hex}\"\n                                      title=${t.name}\n                                      @click=${()=>this.pick(t.hex)}\n                                  ></button>\n                              `)}\n                          <button\n                              class=\"swatch\"\n                              title=\"rainbow\"\n                              style=\"background: conic-gradient(${[...H,H[0]].join(\", \")})\"\n                              @click=${()=>this.pickRainbow()}\n                          ></button>\n                      </div>\n                  `:null}\n        `}};me.styles=[xo`\n            :host {\n                display: inline-flex;\n                position: relative;\n            }\n\n            button.trigger {\n                display: inline-flex;\n                align-items: center;\n                justify-content: center;\n                width: 36px;\n                height: 36px;\n                border-radius: var(--radius);\n                border: 1px solid var(--border);\n                background: none;\n                color: var(--text-muted);\n                cursor: pointer;\n                transition:\n                    background var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    color var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    box-shadow var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            button.trigger:focus-visible {\n                outline: none;\n                box-shadow: var(--focus-ring);\n            }\n\n            button.trigger:hover {\n                background: var(--bg-hover);\n                color: var(--text);\n            }\n\n            button.trigger svg {\n                width: 19px;\n                height: 19px;\n            }\n\n            @keyframes pop-in {\n                from {\n                    opacity: 0;\n                    transform: translateY(-6px) scale(0.95);\n                }\n\n                to {\n                    opacity: 1;\n                    transform: none;\n                }\n            }\n\n            .popover {\n                position: absolute;\n                top: calc(100% + 8px);\n                right: 0;\n                z-index: 60;\n                display: grid;\n                grid-template-columns: repeat(5, auto);\n                gap: 10px;\n                padding: 12px;\n                background: var(--bg-raised);\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                box-shadow: var(--shadow);\n                animation: pop-in 0.16s ease-out;\n            }\n\n            .swatch {\n                width: 26px;\n                height: 26px;\n                border-radius: 50%;\n                border: 2px solid transparent;\n                cursor: pointer;\n                padding: 0;\n                transition: transform 0.12s, border-color 0.15s;\n            }\n\n            .swatch:hover {\n                transform: scale(1.15);\n                border-color: var(--text);\n            }\n        `,p],o([Eo()],me.prototype,\"open\",2),me=o([ko(\"druid-accent-picker\")],me);import{css as Co,html as et,LitElement as Lo,svg as $o}from\"./lit-vendor.js\";import{customElement as Mo,state as Ht}from\"./lit-vendor.js\";var Z=class extends Lo{constructor(){super(...arguments);this.open=!1;this.current=null;this.onOutsideClick=e=>{this.open&&!e.composedPath().includes(this)&&(this.open=!1)}}connectedCallback(){super.connectedCallback(),this.current=Ge(),document.addEventListener(\"click\",this.onOutsideClick)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(\"click\",this.onOutsideClick)}pick(e){he(e),Ct(e),this.current=e,this.open=!1}render(){let e=$o`\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n                <path d=\"M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5S5 13 5 15a7 7 0 0 0 7 7z\" />\n            </svg>`,t=(a,s,i)=>et`\n            <button\n                class=\"swatch ${a===le?\"neutral\":\"\"} ${(a===le?!this.current||this.current===a:this.current===a)?\"active\":\"\"}\"\n                style=\"background: ${s}\"\n                title=${i}\n                aria-label=${i}\n                @click=${()=>this.pick(a)}\n            ></button>\n        `;return et`\n            <button class=\"trigger\" title=\"Surface flavor\" aria-label=\"Surface flavor\" @click=${()=>this.open=!this.open}>\n                ${e}\n            </button>\n            ${this.open?et`\n                      <div class=\"popover\">\n                          ${Me.map(a=>t(a.name,a.hex,a.name))}\n                          <!-- the slot the accent picker gives its rainbow: neutral, the way\n                               back to the app's own default tint. It paints the default page\n                               background, which is exactly what picking it restores. -->\n                          ${t(le,\"oklch(var(--df-l-bg) var(--df-c-bg) var(--df-flavor-default-hue))\",\"neutral\")}\n                      </div>\n                  `:null}\n        `}};Z.styles=[Co`\n            :host {\n                display: inline-flex;\n                position: relative;\n            }\n\n            button.trigger {\n                display: inline-flex;\n                align-items: center;\n                justify-content: center;\n                width: 36px;\n                height: 36px;\n                border-radius: var(--radius);\n                border: 1px solid var(--border);\n                background: none;\n                color: var(--text-muted);\n                cursor: pointer;\n                transition: background 0.15s, color 0.15s;\n            }\n\n            button.trigger:hover {\n                background: var(--bg-hover);\n                color: var(--text);\n            }\n\n            button.trigger svg {\n                width: 19px;\n                height: 19px;\n            }\n\n            @keyframes pop-in {\n                from {\n                    opacity: 0;\n                    transform: translateY(-6px) scale(0.95);\n                }\n\n                to {\n                    opacity: 1;\n                    transform: none;\n                }\n            }\n\n            .popover {\n                position: absolute;\n                top: calc(100% + 8px);\n                right: 0;\n                z-index: 60;\n                display: grid;\n                grid-template-columns: repeat(5, auto);\n                gap: 10px;\n                padding: 12px;\n                background: var(--bg-raised);\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                box-shadow: var(--shadow);\n                animation: pop-in 0.16s ease-out;\n            }\n\n            .swatch {\n                width: 26px;\n                height: 26px;\n                border-radius: 50%;\n                border: 2px solid transparent;\n                cursor: pointer;\n                padding: 0;\n                transition: transform 0.12s, border-color 0.15s;\n            }\n\n            .swatch:hover {\n                transform: scale(1.15);\n                border-color: var(--text);\n            }\n\n            /* the tint is subtle on the surfaces, so the popover marks the pick */\n            .swatch.active {\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            /* the neutral swatch is painted in a surface color, so against the\n               popover's own surface it needs an outline to exist at all */\n            .swatch.neutral {\n                box-shadow: inset 0 0 0 1px var(--border-strong);\n            }\n        `,p],o([Ht()],Z.prototype,\"open\",2),o([Ht()],Z.prototype,\"current\",2),Z=o([Mo(\"druid-flavor-picker\")],Z);import{css as To,html as Ho,LitElement as Ao,svg as tt}from\"./lit-vendor.js\";import{customElement as No,state as At}from\"./lit-vendor.js\";var So={auto:\"Theme: follow system\",light:\"Theme: light\",dark:\"Theme: dark\"},J=class extends Ao{constructor(){super(...arguments);this.theme=\"auto\";this.resolved=\"dark\";this.media=window.matchMedia(\"(prefers-color-scheme: light)\");this.onSystemChange=()=>{this.resolved=X()}}connectedCallback(){super.connectedCallback(),this.theme=_e(),this.resolved=X(),this.media.addEventListener(\"change\",this.onSystemChange)}disconnectedCallback(){super.disconnectedCallback(),this.media.removeEventListener(\"change\",this.onSystemChange)}cycle(){let e=R[(R.indexOf(we())+1)%R.length];Q(e),Et(e),this.theme=e,this.resolved=X(),this.dispatchEvent(new CustomEvent(\"theme-change\",{detail:{theme:e,resolved:this.resolved},bubbles:!0,composed:!0}))}render(){let e=tt`\n            <circle cx=\"12\" cy=\"12\" r=\"4\" />\n            <path d=\"M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4\" />`,t=tt`<path d=\"M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z\" />`,a=tt`\n            <circle cx=\"12\" cy=\"12\" r=\"9\" />\n            <path d=\"M12 3a9 9 0 0 0 0 18z\" fill=\"currentColor\" stroke=\"none\" />`,s=this.theme===\"auto\"?a:this.theme===\"light\"?e:t,i=So[this.theme]+(this.theme===\"auto\"?` (${this.resolved})`:\"\");return Ho`\n            <button title=${i} aria-label=${i} @click=${()=>this.cycle()}>\n                <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n                    ${s}\n                </svg>\n            </button>\n        `}};J.styles=[To`\n            :host {\n                display: inline-flex;\n            }\n\n            button {\n                display: inline-flex;\n                align-items: center;\n                justify-content: center;\n                width: 36px;\n                height: 36px;\n                border-radius: var(--radius);\n                border: 1px solid var(--border);\n                background: none;\n                color: var(--text-muted);\n                cursor: pointer;\n                transition:\n                    background var(--df-dur-fast) var(--df-ease),\n                    color var(--df-dur-fast) var(--df-ease);\n            }\n\n            button:hover {\n                background: var(--bg-hover);\n                color: var(--text);\n            }\n\n            button:focus-visible {\n                outline: none;\n                box-shadow: var(--focus-ring);\n            }\n\n            svg {\n                width: 19px;\n                height: 19px;\n            }\n\n            /* the icon turns as the state does, so the cycle reads as one control\n               rather than three unrelated glyphs */\n            svg {\n                transition: transform var(--df-dur) var(--df-ease);\n            }\n\n            button:hover svg {\n                transform: rotate(18deg);\n            }\n        `,p],o([At()],J.prototype,\"theme\",2),o([At()],J.prototype,\"resolved\",2),J=o([No(\"druid-theme-toggle\")],J);import{css as Fo,html as Nt,LitElement as Ro,svg as Io}from\"./lit-vendor.js\";import{customElement as Oo,property as St}from\"./lit-vendor.js\";var D=class extends Ro{constructor(){super(...arguments);this.brand=\"\";this.logoutHref=\"\"}render(){let e=Io`\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\n                <path d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\" />\n                <polyline points=\"16 17 21 12 16 7\" />\n                <line x1=\"21\" x2=\"9\" y1=\"12\" y2=\"12\" />\n            </svg>`;return Nt`\n            <header>\n                <div class=\"brand\">\n                    ${Pe()}\n                    <h1>${this.brand}</h1>\n                </div>\n                <nav class=\"tabs-region\">\n                    <slot></slot>\n                </nav>\n                <div class=\"actions\">\n                    <slot name=\"actions\"></slot>\n                    <druid-theme-toggle></druid-theme-toggle>\n                    <druid-flavor-picker></druid-flavor-picker>\n                    <druid-accent-picker></druid-accent-picker>\n                    ${this.logoutHref?Nt`<druid-icon-button label=\"Logout\" href=${this.logoutHref}>${e}</druid-icon-button>`:null}\n                </div>\n            </header>\n        `}};D.styles=[Fo`\n            :host {\n                display: block;\n            }\n\n            header {\n                display: flex;\n                align-items: center;\n                gap: 24px;\n                padding: 12px 22px;\n                border-bottom: 1px solid var(--border);\n                background: var(--bg-raised);\n            }\n\n            .brand {\n                display: flex;\n                align-items: center;\n                gap: 10px;\n            }\n\n            .brand h1 {\n                margin: 0;\n                font-size: 1.25rem;\n                font-weight: 650;\n                letter-spacing: 0.02em;\n            }\n\n            /* brand leaf: accent fill, glow follows the shape */\n            .brand-leaf {\n                width: 28px;\n                height: 28px;\n                color: var(--df-accent, var(--accent));\n                filter: drop-shadow(0 0 6px var(--df-accent, var(--accent)));\n                flex-shrink: 0;\n            }\n\n            /* The tab strip scrolls inside the bar instead of widening the page:\n               min-width 0 lets the flex item shrink below its content. */\n            .tabs-region {\n                display: flex;\n                gap: 4px;\n                flex: 1;\n                min-width: 0;\n                overflow-x: auto;\n                scrollbar-width: none;\n            }\n\n            .tabs-region::-webkit-scrollbar {\n                display: none;\n            }\n\n            .actions {\n                display: flex;\n                align-items: center;\n                gap: 8px;\n                flex-shrink: 0;\n            }\n\n            /* narrow: keep the brand, tabs and actions on one line by giving up\n               the wide gaps and the wordmark rather than by wrapping */\n            @media (max-width: 720px) {\n                header {\n                    gap: 12px;\n                    padding: 10px 12px;\n                }\n\n                .brand h1 {\n                    display: none;\n                }\n            }\n        `,p],o([St()],D.prototype,\"brand\",2),o([St({attribute:\"logout-href\"})],D.prototype,\"logoutHref\",2),D=o([Oo(\"druid-navbar\")],D);import{css as Ft,html as Rt,LitElement as It}from\"./lit-vendor.js\";import{customElement as Ot,property as ot}from\"./lit-vendor.js\";var ee=class extends It{constructor(){super(...arguments);this.panel=\"\";this.active=!1}render(){return Rt`<button part=\"tab\"><slot></slot></button>`}};ee.styles=[Ft`\n            :host {\n                display: inline-flex;\n            }\n\n            button {\n                background: none;\n                border: none;\n                color: var(--text-muted);\n                font: inherit;\n                padding: 7px 14px;\n                border-radius: var(--radius);\n                white-space: nowrap;\n                cursor: pointer;\n                transition:\n                    background var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    color var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    box-shadow var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            button:hover {\n                background: var(--bg-hover);\n                color: var(--text);\n            }\n\n            button:focus-visible {\n                outline: none;\n                box-shadow: var(--focus-ring);\n            }\n\n            :host([active]) button {\n                background: var(--df-accent-soft, var(--accent-soft));\n                color: var(--df-accent, var(--accent));\n            }\n        `,p],o([ot()],ee.prototype,\"panel\",2),o([ot({type:Boolean,reflect:!0})],ee.prototype,\"active\",2),ee=o([Ot(\"druid-tab\")],ee);var fe=class extends It{constructor(){super(...arguments);this.active=\"\";this.onTabClick=e=>{let t=e.target.closest(\"druid-tab\");!t||!t.panel||(this.active=t.panel,this.dispatchEvent(new CustomEvent(\"tab-change\",{detail:{panel:t.panel},bubbles:!0})))}}connectedCallback(){super.connectedCallback(),this.addEventListener(\"click\",this.onTabClick)}firstUpdated(){if(!this.active){let e=this.querySelector(\"druid-tab\");e&&(this.active=e.panel)}this.sync()}updated(){this.sync()}sync(){for(let e of this.querySelectorAll(\"druid-tab\"))e.active=e.panel===this.active;for(let e of document.querySelectorAll(\"[data-tab-panel]\"))e.classList.toggle(\"active\",e.dataset.tabPanel===this.active)}render(){return Rt`<slot></slot>`}};fe.styles=[Ft`\n            /* The strip scrolls inside itself instead of widening the page: min-width\n               0 lets it shrink below its content. Same treatment the navbar gives its\n               tabs region, for a strip placed in content. */\n            :host {\n                display: flex;\n                gap: 4px;\n                flex: 1;\n                min-width: 0;\n                overflow-x: auto;\n                scrollbar-width: none;\n            }\n\n            :host::-webkit-scrollbar {\n                display: none;\n            }\n        `,p],o([ot()],fe.prototype,\"active\",2),fe=o([Ot(\"druid-tabs\")],fe);import{css as zo,html as zt,LitElement as qo}from\"./lit-vendor.js\";import{customElement as Bo,property as rt}from\"./lit-vendor.js\";var j=class extends qo{constructor(){super(...arguments);this.active=\"\";this.heading=\"\";this.boxed=!1;this.onTabClick=e=>{let t=e.target.closest(\"druid-tab\");!t||t.parentElement!==this||!t.panel||t.panel!==this.active&&(this.active=t.panel,this.dispatchEvent(new CustomEvent(\"subtab-change\",{detail:{panel:t.panel}})),this.dispatchEvent(new CustomEvent(\"tab-change\",{detail:{panel:t.panel},bubbles:!0})))}}connectedCallback(){super.connectedCallback(),this.addEventListener(\"click\",this.onTabClick)}firstUpdated(){if(!this.active){let e=this.querySelector(\":scope > druid-tab\");e&&(this.active=e.panel)}this.sync()}updated(){this.sync()}sync(){for(let e of this.querySelectorAll(\":scope > druid-tab\"))e.active=e.panel===this.active;for(let e of this.querySelectorAll(\":scope > [data-subtab-panel]\"))e.classList.toggle(\"active\",e.dataset.subtabPanel===this.active)}render(){return zt`\n            <header>\n                ${this.heading?zt`<span class=\"heading\">${this.heading}</span>`:null}\n                <div class=\"strip\"><slot name=\"tab\"></slot></div>\n            </header>\n            <div class=\"body\"><slot></slot></div>\n        `}};j.styles=[zo`\n            :host {\n                display: flex;\n                flex-direction: column;\n                flex: 1;\n                min-height: 0;\n            }\n\n            header {\n                display: flex;\n                align-items: center;\n                gap: 12px;\n                margin-bottom: 12px;\n            }\n\n            .heading {\n                font-weight: 600;\n                font-size: 0.9rem;\n                /* accent by default; retarget with --df-subtabs-heading-color */\n                color: var(--df-subtabs-heading-color, var(--df-accent, var(--accent)));\n            }\n\n            .strip {\n                display: flex;\n                gap: 4px;\n                flex: 1;\n                flex-wrap: wrap;\n            }\n\n            /* default: bare header above, content in its own bordered box */\n            .body {\n                display: flex;\n                flex-direction: column;\n                flex: 1;\n                min-height: 0;\n                padding: 14px;\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                background: var(--df-panel-body-bg, var(--bg-raised));\n                overflow: hidden;\n            }\n\n            /* boxed: header and body merge into one card, split by a divider \u2014\n               a lit header bar over a raised body, the same split .df-card uses.\n               Retarget with --df-panel-header-bg / --df-panel-body-bg. */\n            :host([boxed]) {\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                background: var(--df-panel-header-bg, var(--bg-header));\n                overflow: hidden;\n            }\n\n            :host([boxed]) header {\n                margin-bottom: 0;\n                padding: 8px 10px;\n                border-bottom: 1px solid var(--border);\n                background: var(--df-panel-header-bg, var(--bg-header));\n            }\n\n            :host([boxed]) .heading {\n                padding-left: 4px;\n            }\n\n            :host([boxed]) .body {\n                border: 0;\n                border-radius: 0;\n                background: var(--df-panel-body-bg, var(--bg-raised));\n            }\n        `,p],o([rt()],j.prototype,\"active\",2),o([rt()],j.prototype,\"heading\",2),o([rt({type:Boolean,reflect:!0})],j.prototype,\"boxed\",2),j=o([Bo(\"druid-subtabs\")],j);import{css as Po,html as at,LitElement as Vo}from\"./lit-vendor.js\";import{customElement as jo,property as Ne}from\"./lit-vendor.js\";var O=class extends Vo{constructor(){super(...arguments);this.brand=\"\";this.version=\"\";this.author=\"\";this.github=\"\"}render(){return at`\n            <footer>\n                <span>\n                    ${this.brand}${this.version?` v${this.version}`:\"\"}\n                    ${this.github?at`&middot; <a href=${this.github} target=\"_blank\" rel=\"noopener\">${this.author||this.github}</a>`:this.author?at`&middot; ${this.author}`:null}\n                    <slot></slot>\n                </span>\n            </footer>\n        `}};O.styles=[Po`\n            :host {\n                display: block;\n            }\n\n            footer {\n                padding: 12px 22px;\n                text-align: center;\n                color: var(--text-muted);\n                font-size: 0.8rem;\n                border-top: 1px solid var(--border);\n            }\n\n            a {\n                color: var(--df-accent, var(--accent));\n                text-decoration: none;\n            }\n        `,p],o([Ne()],O.prototype,\"brand\",2),o([Ne()],O.prototype,\"version\",2),o([Ne()],O.prototype,\"author\",2),o([Ne()],O.prototype,\"github\",2),O=o([jo(\"druid-footer\")],O);import{html as qt,LitElement as Ko,svg as Uo}from\"./lit-vendor.js\";import{customElement as Wo,property as Se}from\"./lit-vendor.js\";var K=class extends Ko{constructor(){super(...arguments);this.brand=\"\";this.action=\"/login\";this.error=\"\";this.subtitle=\"Sign in to continue\"}createRenderRoot(){return this}render(){let e=Uo`<svg class=\"brand-leaf\" viewBox=\"0 0 512 512\" fill=\"currentColor\" aria-hidden=\"true\" focusable=\"false\"><path d=${Y} /></svg>`;return qt`\n            <form class=\"df-login-card\" method=\"post\" action=${this.action}>\n                <div class=\"df-login-brand\">\n                    ${e}\n                    <h1>${this.brand}</h1>\n                </div>\n                <p class=\"df-login-subtitle\">${this.subtitle}</p>\n                ${this.error?qt`<p class=\"df-form-error\">${this.error}</p>`:null}\n                <label>\n                    Username\n                    <input type=\"text\" name=\"username\" required autofocus autocomplete=\"username\" />\n                </label>\n                <label>\n                    Password\n                    <input type=\"password\" name=\"password\" required autocomplete=\"current-password\" />\n                </label>\n                <button type=\"submit\" class=\"df-login-submit\">Sign in</button>\n            </form>\n        `}};o([Se()],K.prototype,\"brand\",2),o([Se()],K.prototype,\"action\",2),o([Se()],K.prototype,\"error\",2),o([Se()],K.prototype,\"subtitle\",2),K=o([Wo(\"druid-login-card\")],K);import{html as _o,LitElement as Go}from\"./lit-vendor.js\";import{customElement as Yo,property as U}from\"./lit-vendor.js\";var $=class extends Go{constructor(){super(...arguments);this.name=\"\";this.placeholder=\"\";this.value=\"\";this.rows=3;this.maxlength=-1;this.autosize=!1;this.disabled=!1;this.required=!1}createRenderRoot(){return this}get textarea(){return this.querySelector(\"textarea\")}focus(){this.textarea?.focus()}onInput(e){this.value=e.target.value,this.autosize&&this.resize()}resize(){let e=this.textarea;if(e){if(!e.value){e.style.height=\"\";return}e.style.height=\"auto\",e.style.height=`${e.scrollHeight+2}px`}}updated(e){this.autosize&&(e.has(\"value\")||e.has(\"rows\")||e.has(\"autosize\"))&&this.resize()}render(){return _o`<textarea name=${this.name} rows=${this.rows} placeholder=${this.placeholder} maxlength=${this.maxlength} ?disabled=${this.disabled} ?required=${this.required} .value=${this.value} @input=${this.onInput}></textarea>`}};o([U()],$.prototype,\"name\",2),o([U()],$.prototype,\"placeholder\",2),o([U()],$.prototype,\"value\",2),o([U({type:Number})],$.prototype,\"rows\",2),o([U({type:Number})],$.prototype,\"maxlength\",2),o([U({type:Boolean,reflect:!0})],$.prototype,\"autosize\",2),o([U({type:Boolean})],$.prototype,\"disabled\",2),o([U({type:Boolean})],$.prototype,\"required\",2),$=o([Yo(\"druid-textarea\")],$);import{css as Do,html as oe,LitElement as er}from\"./lit-vendor.js\";import{customElement as tr,property as Ie,state as Oe}from\"./lit-vendor.js\";import{css as Qo,html as k,LitElement as Zo,nothing as Fe}from\"./lit-vendor.js\";import{customElement as Jo,property as z,query as Bt,state as Re}from\"./lit-vendor.js\";function Xo(r,n,e,t,a){a&&n instanceof HTMLElement&&(r.style.minWidth=`${n.offsetWidth}px`);let s=n.getBoundingClientRect(),i=r.getBoundingClientRect(),l=window.innerWidth,d=window.innerHeight,[h,E=\"start\"]=e.split(\"-\"),f=0,m=0;h===\"bottom\"||h===\"top\"?(f=h===\"bottom\"?s.bottom+t:s.top-i.height-t,h===\"bottom\"&&f+i.height>d-t&&s.top-i.height-t>0?f=s.top-i.height-t:h===\"top\"&&f<0&&s.bottom+i.height+t<d&&(f=s.bottom+t),m=E===\"end\"?s.right-i.width:s.left):(m=h===\"right\"?s.right+t:s.left-i.width-t,h===\"right\"&&m+i.width>l&&s.left-i.width-t>0?m=s.left-i.width-t:h===\"left\"&&m<0&&s.right+i.width+t<l&&(m=s.right+t),f=s.top),m=Math.max(t,Math.min(m,l-i.width-t)),f=Math.max(t,Math.min(f,d-i.height-t)),r.style.left=`${m}px`,r.style.top=`${f}px`}function te(r,n,e={}){let t=e.placement??\"bottom-start\",a=e.gap??6,s=e.matchWidth??!1;Object.assign(r.style,{position:\"fixed\",margin:\"0\",inset:\"auto\",maxWidth:`calc(100vw - ${2*a}px)`});let i=!1;if(r.hasAttribute(\"popover\"))try{r.showPopover(),i=!0}catch{}let l=()=>Xo(r,n,t,a,s);return window.addEventListener(\"scroll\",l,!0),window.addEventListener(\"resize\",l),l(),{update:l,release(){if(window.removeEventListener(\"scroll\",l,!0),window.removeEventListener(\"resize\",l),i)try{r.hidePopover()}catch{}}}}var Pt=100,v=class extends Zo{constructor(){super(...arguments);this.name=\"\";this.value=\"\";this.placeholder=\"Select...\";this.label=\"\";this.filter=!1;this.free=!1;this.multiple=!1;this.min=0;this.compact=!1;this.open=!1;this.options=[];this.query=\"\";this.active=-1;this.hiddenInputs=[];this.dragMoved=!1;this.onOutsideClick=e=>{this.open&&!e.composedPath().includes(this)&&(this.open=!1)};this.onKeydown=e=>{this.open&&e.key===\"Escape\"&&(this.open=!1)};this.onOwnKeydown=e=>{if(!this.open){(e.key===\"ArrowDown\"||this.multiple&&(e.key===\"Enter\"||e.key===\" \"))&&(e.preventDefault(),this.open=!0);return}let{rows:t}=this.visible();if(e.key===\"ArrowDown\"||e.key===\"ArrowUp\"){if(e.preventDefault(),!t.length)return;let a=e.key===\"ArrowDown\"?1:-1;this.active=(this.active+a+t.length)%t.length}else if(e.key===\"Enter\"){let a=t[this.active],s=this.query.trim();a?(e.preventDefault(),this.select(a)):this.free&&s&&(e.preventDefault(),this.select({value:s,label:s}))}else e.key===\"Tab\"&&(this.open=!1)}}get values(){return this.multiple?this.value.split(\",\").map(e=>e.trim()).filter(Boolean):this.value?[this.value]:[]}set values(e){this.value=e.join(\",\")}connectedCallback(){super.connectedCallback(),this.readOptions(),this.observer=new MutationObserver(()=>this.readOptions()),this.observer.observe(this,{childList:!0,subtree:!0,characterData:!0}),document.addEventListener(\"click\",this.onOutsideClick),document.addEventListener(\"keydown\",this.onKeydown),this.addEventListener(\"keydown\",this.onOwnKeydown)}disconnectedCallback(){super.disconnectedCallback(),this.observer?.disconnect(),document.removeEventListener(\"click\",this.onOutsideClick),document.removeEventListener(\"keydown\",this.onKeydown),this.removeEventListener(\"keydown\",this.onOwnKeydown),this.pin?.release(),this.pin=void 0}readOptions(){this.options=[...this.querySelectorAll(\"option\")].map(e=>({value:e.getAttribute(\"value\")??e.textContent?.trim()??\"\",label:e.textContent?.trim()??\"\"}))}labelFor(e){return this.options.find(t=>t.value===e)?.label??e}visible(){let e=this.options;if(this.multiple){let a=new Set(this.values);e=e.filter(s=>!a.has(s.value))}if(!this.filter)return{rows:e,more:0};let t=this.query.trim().toLowerCase();if(t){let a=e.filter(i=>i.label.toLowerCase().includes(t)||i.value.toLowerCase().includes(t)),s=i=>i.label.toLowerCase().startsWith(t)||i.value.toLowerCase().startsWith(t);e=[...a.filter(s),...a.filter(i=>!s(i))]}return{rows:e.slice(0,Pt),more:Math.max(0,e.length-Pt)}}onFilterInput(e){this.query=e.target.value;let t=this.query.trim().toLowerCase(),{rows:a}=this.visible();this.active=t?this.free?a.findIndex(s=>s.label.toLowerCase()===t||s.value.toLowerCase()===t):0:-1}select(e){if(this.multiple){let t=this.values,a=e.value.replace(/,/g,\" \");t.includes(a)||(this.values=[...t,a]),this.query=\"\",this.active=-1}else this.value=e.value,this.open=!1;this.syncHiddenInputs(),this.commit()}unpick(e){let t=this.values;t.length<=this.min||(this.values=t.filter(a=>a!==e),this.syncHiddenInputs(),this.commit())}move(e,t){let a=this.values;if(e===t||t<0||t>=a.length)return!1;let[s]=a.splice(e,1);return a.splice(t,0,s),this.values=a,!0}onPillKeydown(e,t){let a=e.key===\"ArrowLeft\"||e.key===\"ArrowUp\",s=e.key===\"ArrowRight\"||e.key===\"ArrowDown\";if(e.altKey&&(a||s)){e.preventDefault(),e.stopPropagation();let i=t+(a?-1:1);this.move(t,i)&&(this.refocus=i,this.syncHiddenInputs(),this.commit())}else if(e.key===\"Delete\"||e.key===\"Backspace\"){e.preventDefault(),e.stopPropagation();let i=this.values;if(i.length<=this.min)return;this.refocus=Math.min(t,i.length-2),this.unpick(i[t])}}commit(){this.dispatchEvent(new CustomEvent(\"change\",{detail:{value:this.value,values:this.values},bubbles:!0}))}syncHiddenInputs(){if(!this.name)return;let e=this.multiple?this.values:[this.value];for(;this.hiddenInputs.length>e.length;)this.hiddenInputs.pop()?.remove();for(;this.hiddenInputs.length<e.length;){let t=document.createElement(\"input\");t.type=\"hidden\",t.name=this.name,this.appendChild(t),this.hiddenInputs.push(t)}e.forEach((t,a)=>this.hiddenInputs[a].value=t)}willUpdate(e){e.has(\"open\")&&this.open&&(this.query=\"\",this.active=this.multiple?-1:this.visible().rows.findIndex(t=>t.value===this.value))}updated(e){if(this.syncHiddenInputs(),e.has(\"open\")?this.open?this.showMenu():this.hideMenu():this.open&&this.pin?.update(),this.open&&e.has(\"active\")&&this.renderRoot.querySelector(\".item.active\")?.scrollIntoView({block:\"nearest\"}),this.refocus!==void 0){let t=this.renderRoot.querySelectorAll(\".pill\");t[Math.max(0,Math.min(this.refocus,t.length-1))]?.focus(),this.refocus=void 0}}showMenu(){this.pin=te(this.menu,this.trigger,{matchWidth:!0}),this.filter&&this.renderRoot.querySelector(\".filter\")?.focus()}hideMenu(){this.pin?.release(),this.pin=void 0}chevron(){return k`<svg class=\"chev\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polyline points=\"6 9 12 15 18 9\" /></svg>`}pills(){let e=this.values;if(!e.length)return k`<span class=\"text placeholder\">${this.placeholder}</span>`;let t=e.length<=this.min,a=e.length>1;return k`<span class=\"pills\"\n            >${e.map((s,i)=>k`<span\n                    part=\"pill\"\n                    class=\"pill ${this.dragFrom===i?\"dragging\":\"\"}\"\n                    tabindex=\"0\"\n                    draggable=${a?\"true\":\"false\"}\n                    aria-label=${a?`${this.labelFor(s)}, ${i+1} of ${e.length}. Alt+arrow keys reorder.`:this.labelFor(s)}\n                    @keydown=${l=>this.onPillKeydown(l,i)}\n                    @click=${l=>l.stopPropagation()}\n                    @dragstart=${l=>{this.dragFrom=i,this.dragMoved=!1,l.dataTransfer?.setData(\"text/plain\",s),l.dataTransfer&&(l.dataTransfer.effectAllowed=\"move\"),this.requestUpdate()}}\n                    @dragover=${l=>{this.dragFrom!==void 0&&(l.preventDefault(),this.move(this.dragFrom,i)&&(this.dragFrom=i,this.dragMoved=!0))}}\n                    @dragend=${()=>{this.dragFrom=void 0,this.dragMoved&&(this.dragMoved=!1,this.syncHiddenInputs(),this.commit()),this.requestUpdate()}}\n                    ><span title=${this.labelFor(s)}>${this.labelFor(s)}</span\n                    ><button\n                        type=\"button\"\n                        part=\"pill-remove\"\n                        class=\"pill-remove\"\n                        aria-label=\"Remove ${this.labelFor(s)}\"\n                        ?disabled=${t}\n                        @click=${l=>{l.stopPropagation(),this.unpick(s)}}\n                    >\n                        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6L6 18\" /></svg>\n                    </button></span\n                >`)}</span\n        >`}render(){let t=this.options.find(d=>d.value===this.value)?.label??(this.free?this.value:\"\"),{rows:a,more:s}=this.visible(),i=this.query.trim(),l=new Set(this.values);return k`\n            ${this.multiple?k`<div\n                      part=\"trigger\"\n                      class=\"trigger ${this.open?\"open\":\"\"}\"\n                      role=\"combobox\"\n                      tabindex=\"0\"\n                      aria-haspopup=\"listbox\"\n                      aria-expanded=${this.open}\n                      aria-label=${this.label||this.placeholder}\n                      @click=${()=>this.open=!this.open}\n                  >\n                      ${this.pills()}${this.chevron()}\n                  </div>`:k`<button\n                      type=\"button\"\n                      part=\"trigger\"\n                      class=\"trigger ${this.open?\"open\":\"\"}\"\n                      aria-haspopup=\"listbox\"\n                      aria-expanded=${this.open}\n                      aria-label=${this.label||this.placeholder}\n                      @click=${()=>this.open=!this.open}\n                  >\n                      ${t?k`<span class=\"text\" title=${t}>${t}</span>`:k`<span class=\"text placeholder\">${this.placeholder}</span>`}${this.chevron()}\n                  </button>`}\n            <div part=\"menu\" class=\"menu ${this.open?\"open\":\"\"}\" popover=\"manual\">\n                ${this.filter?k`<input\n                          part=\"filter\"\n                          class=\"filter\"\n                          type=\"text\"\n                          autocomplete=\"off\"\n                          spellcheck=\"false\"\n                          placeholder=${this.free?\"Filter or type a value\\u2026\":\"Filter\\u2026\"}\n                          aria-label=\"Filter options\"\n                          .value=${this.query}\n                          @input=${this.onFilterInput}\n                      />`:Fe}\n                <div class=\"list\" role=\"listbox\" aria-multiselectable=${this.multiple?\"true\":\"false\"}>\n                    ${a.map((d,h)=>k`<button\n                            type=\"button\"\n                            part=\"item\"\n                            class=\"item ${l.has(d.value)?\"selected\":\"\"} ${h===this.active?\"active\":\"\"}\"\n                            role=\"option\"\n                            aria-selected=${l.has(d.value)}\n                            title=${d.label}\n                            @click=${()=>this.select(d)}\n                        >\n                            ${d.label}\n                        </button>`)}\n                    ${s?k`<div class=\"note\">${s} more \u2014 keep typing to narrow</div>`:Fe}\n                    ${this.filter&&i&&(this.free?this.active<0:!a.length)?k`<div class=\"note\">${this.free?`Enter uses \\u201C${i}\\u201D`:\"No match\"}</div>`:Fe}\n                    ${this.multiple&&!a.length&&!i?k`<div class=\"note\">Nothing left to pick</div>`:Fe}\n                </div>\n            </div>\n        `}};v.styles=[Qo`\n            /* the page's box-sizing reset does not pierce the shadow root; without\n               this the menu's min-width:100% ends up wider than the trigger */\n            *,\n            *::before,\n            *::after {\n                box-sizing: border-box;\n            }\n\n            :host {\n                display: inline-flex;\n                position: relative;\n                /* a narrow host (a side panel, a toolbar) shrinks the select and\n                   ellipsizes its label instead of wrapping onto a second row */\n                min-width: 0;\n                max-width: 100%;\n            }\n\n            /* the trigger's density: df-shell-compact sets these for a panel-width\n               host, [compact] for one crowded control on any page */\n            :host([compact]) {\n                --df-select-pad: 3px 6px;\n                --df-select-chev: 11px;\n            }\n\n            .trigger {\n                display: inline-flex;\n                align-items: center;\n                justify-content: space-between;\n                gap: 8px;\n                width: 100%;\n                /* a floor when there is room, never a reason to overflow */\n                min-width: min(130px, 100%);\n                padding: var(--df-select-pad, 6px 10px);\n                border-radius: var(--radius);\n                border: 1px solid var(--border);\n                /* match the light-DOM form controls (--bg), not the raised card */\n                background: var(--df-select-bg, var(--bg));\n                color: var(--text);\n                font: inherit;\n                font-size: 0.85rem;\n                text-align: left;\n                cursor: pointer;\n                transition:\n                    border-color var(--df-dur-fast, 0.15s) var(--df-ease, ease),\n                    box-shadow var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            :host([compact]) .trigger {\n                gap: 4px;\n                min-width: min(64px, 100%);\n            }\n\n            .trigger:hover,\n            .trigger:focus-visible,\n            .trigger.open {\n                outline: none;\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            .trigger:focus-visible {\n                box-shadow: var(--focus-ring);\n            }\n\n            .text {\n                min-width: 0;\n                overflow: hidden;\n                text-overflow: ellipsis;\n                white-space: nowrap;\n            }\n\n            .trigger .placeholder {\n                color: var(--text-muted);\n            }\n\n            .chev {\n                width: var(--df-select-chev, 14px);\n                height: var(--df-select-chev, 14px);\n                flex-shrink: 0;\n                color: var(--text-muted);\n                transition: transform 0.15s;\n            }\n\n            .trigger.open .chev {\n                transform: rotate(180deg);\n            }\n\n            /* multiple: the picks live in the trigger as removable pills, which\n               wrap \u2014 the control grows downward instead of clipping the list */\n            .pills {\n                display: flex;\n                flex-wrap: wrap;\n                gap: 4px;\n                min-width: 0;\n            }\n\n            .pill {\n                display: inline-flex;\n                align-items: center;\n                gap: 4px;\n                max-width: 100%;\n                padding: 1px 4px 1px 7px;\n                border-radius: 999px;\n                background: var(--df-accent-soft, var(--accent-soft));\n                color: var(--df-accent, var(--accent));\n                font-size: 0.78rem;\n                line-height: 1.5;\n            }\n\n            .pill:focus-visible {\n                outline: none;\n                box-shadow: var(--focus-ring);\n            }\n\n            .pill[draggable=\"true\"] {\n                cursor: grab;\n            }\n\n            .pill.dragging {\n                opacity: 0.5;\n            }\n\n            .pill > span {\n                overflow: hidden;\n                text-overflow: ellipsis;\n                white-space: nowrap;\n            }\n\n            .pill-remove {\n                display: inline-flex;\n                align-items: center;\n                justify-content: center;\n                flex-shrink: 0;\n                width: 14px;\n                height: 14px;\n                padding: 0;\n                border: none;\n                border-radius: 999px;\n                background: none;\n                color: inherit;\n                font: inherit;\n                cursor: pointer;\n                opacity: 0.7;\n            }\n\n            .pill-remove:hover {\n                opacity: 1;\n                background: var(--bg-hover);\n            }\n\n            .pill-remove[disabled] {\n                display: none;\n            }\n\n            .pill-remove svg {\n                width: 10px;\n                height: 10px;\n            }\n\n            /* the menu renders in the top layer (native popover) and is positioned\n               against the viewport, so an overflow:auto ancestor \u2014 a scrolling\n               table, a .df-dialog \u2014 can neither clip it nor inherit its height.\n               display:none when closed keeps it out of layout entirely: an\n               absolutely-laid-out closed menu used to inflate the scrollHeight of\n               whatever contained it and paint a phantom scrollbar. anchor() caps\n               its width at the viewport; long labels ellipsize. */\n            .menu {\n                position: fixed;\n                margin: 0;\n                inset: auto;\n                z-index: 60;\n                display: none;\n                flex-direction: column;\n                gap: 2px;\n                padding: 4px;\n                max-height: min(260px, 60vh);\n                overflow: hidden;\n                background: var(--df-select-bg, var(--bg));\n                border: 1px solid var(--df-accent, var(--accent));\n                border-radius: var(--radius);\n                box-shadow: var(--shadow);\n            }\n\n            .menu.open {\n                display: flex;\n                opacity: 1;\n                transform: none;\n                transition: opacity 0.12s ease, transform 0.12s ease;\n            }\n\n            @starting-style {\n                .menu.open {\n                    opacity: 0;\n                    transform: translateY(-4px);\n                }\n            }\n\n            /* the filter box stays put; only the option list scrolls */\n            .list {\n                display: flex;\n                flex-direction: column;\n                gap: 2px;\n                min-height: 0;\n                overflow-y: auto;\n            }\n\n            .filter {\n                flex-shrink: 0;\n                margin: 0 0 4px;\n                padding: 5px 8px;\n                border: 1px solid var(--border);\n                border-radius: var(--radius-sm, 6px);\n                background: var(--bg-dim);\n                color: var(--text);\n                font: inherit;\n                font-size: 0.85rem;\n                outline: none;\n            }\n\n            .filter:focus {\n                border-color: var(--df-accent, var(--accent));\n            }\n\n            .item {\n                flex-shrink: 0;\n                padding: 6px 10px;\n                border: none;\n                border-radius: calc(var(--radius) - 4px);\n                background: none;\n                color: var(--text);\n                font: inherit;\n                font-size: 0.85rem;\n                text-align: left;\n                cursor: pointer;\n                white-space: nowrap;\n                overflow: hidden;\n                text-overflow: ellipsis;\n            }\n\n            .item:hover,\n            .item.active {\n                background: var(--bg-hover);\n            }\n\n            .item.selected {\n                background: var(--df-accent-soft, var(--accent-soft));\n                color: var(--df-accent, var(--accent));\n            }\n\n            .note {\n                padding: 6px 10px;\n                color: var(--text-muted);\n                font-size: 0.8rem;\n            }\n        `,p],o([z()],v.prototype,\"name\",2),o([z()],v.prototype,\"value\",2),o([z()],v.prototype,\"placeholder\",2),o([z()],v.prototype,\"label\",2),o([z({type:Boolean})],v.prototype,\"filter\",2),o([z({type:Boolean})],v.prototype,\"free\",2),o([z({type:Boolean})],v.prototype,\"multiple\",2),o([z({type:Number})],v.prototype,\"min\",2),o([z({type:Boolean,reflect:!0})],v.prototype,\"compact\",2),o([Re()],v.prototype,\"open\",2),o([Re()],v.prototype,\"options\",2),o([Re()],v.prototype,\"query\",2),o([Re()],v.prototype,\"active\",2),o([Bt(\".trigger\")],v.prototype,\"trigger\",2),o([Bt(\".menu\")],v.prototype,\"menu\",2),v=o([Jo(\"druid-select\")],v);var or=[\"DEBUG\",\"INFO\",\"WARNING\",\"ERROR\",\"CRITICAL\"],L=class extends er{constructor(){super(...arguments);this.src=\"\";this.poll=0;this.boxed=!1;this.heading=\"Log\";this.entries=[];this.level=\"\";this.follow=!0;this.error=\"\";this.onVisibilityHint=()=>{requestAnimationFrame(()=>this.visible?this.start():this.stop())}}connectedCallback(){super.connectedCallback(),document.addEventListener(\"tab-change\",this.onVisibilityHint),this.visible&&this.start()}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(\"tab-change\",this.onVisibilityHint),this.stop()}get visible(){return this.offsetParent!==null}start(){this.refresh(),this.stop(),this.poll>0&&(this.timer=window.setInterval(()=>this.refresh(),this.poll*1e3))}stop(){this.timer!==void 0&&(window.clearInterval(this.timer),this.timer=void 0)}async refresh(){if(this.src)try{let e=await fetch(this.src);if(!e.ok)throw new Error(`${e.status} ${e.statusText}`);let t=await e.json();this.entries=Array.isArray(t)?t:t.entries??[],this.error=\"\"}catch(e){this.error=e instanceof Error?e.message:String(e)}}updated(){if(!this.follow)return;let e=this.renderRoot.querySelector(\".wrap\");e&&(e.scrollTop=e.scrollHeight)}onFilter(e){this.level=e.detail.value}onFollowToggle(e){this.follow=e.target.active}renderLine(e){return!e.time&&!e.level&&!e.source?oe`<div class=\"line raw\"><span class=\"message\">${e.message}</span></div>`:oe`<div class=\"line\">\n            <span class=\"time\">${e.time}</span>\n            <span class=\"level ${e.level??\"\"}\">${e.level}</span>\n            <span class=\"source\">${e.source}</span>\n            <span class=\"message\">${e.message}</span>\n        </div>`}render(){let e=this.level?this.entries.filter(t=>t.level===this.level):this.entries;return oe`\n            <header>\n                ${this.boxed?oe`<span class=\"heading\">${this.heading}</span>`:null}\n                <span class=\"spacer\"></span>\n                <druid-select label=\"Filter log level\" .value=${this.level} @change=${this.onFilter}>\n                    <option value=\"\">All levels</option>\n                    ${or.map(t=>oe`<option value=${t}>${t}</option>`)}\n                </druid-select>\n                <druid-icon-button\n                    toggle\n                    ?active=${this.follow}\n                    label=\"Follow tail\"\n                    @toggle-change=${this.onFollowToggle}\n                >\n                    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"3\" x2=\"12\" y2=\"15\" /><polyline points=\"6 9 12 15 18 9\" /><line x1=\"5\" y1=\"21\" x2=\"19\" y2=\"21\" /></svg>\n                </druid-icon-button>\n                <druid-icon-button label=\"Refresh\" @click=${this.refresh}>\n                    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"23 4 23 10 17 10\" /><path d=\"M20.49 15a9 9 0 1 1-2.12-9.36L23 10\" /></svg>\n                </druid-icon-button>\n            </header>\n            <div class=\"wrap\">\n                ${this.error?oe`<div class=\"error\">Failed to load log: ${this.error}</div>`:e.length?e.map(t=>this.renderLine(t)):oe`<div class=\"empty\">No log entries.</div>`}\n            </div>\n        `}};L.styles=[Do`\n            :host {\n                display: flex;\n                flex-direction: column;\n                flex: 1;\n                min-height: 0;\n                gap: 10px;\n            }\n\n            header {\n                display: flex;\n                align-items: center;\n                gap: 10px;\n            }\n\n            .spacer {\n                flex: 1;\n            }\n\n            .wrap {\n                overflow: auto;\n                flex: 1;\n                min-height: 0;\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                background: var(--df-panel-body-bg, var(--bg-dim));\n                font-family: ui-monospace, \"Cascadia Code\", monospace;\n                font-size: 0.78rem;\n            }\n\n            .line {\n                display: grid;\n                grid-template-columns: auto auto auto 1fr;\n                gap: 0 14px;\n                padding: 5px 10px;\n                border-bottom: 1px solid var(--border);\n                white-space: pre-wrap;\n                word-break: break-word;\n            }\n\n            .line.raw {\n                grid-template-columns: 1fr;\n            }\n\n            /* narrow: the message column would be squeezed to a couple of\n               characters between three fixed ones, so the metadata takes a line of\n               its own and the message gets the full width underneath */\n            @media (max-width: 720px) {\n                .line {\n                    grid-template-columns: auto auto 1fr;\n                    gap: 0 8px;\n                    padding: 5px 8px;\n                }\n\n                .message {\n                    grid-column: 1 / -1;\n                    margin-top: 2px;\n                }\n            }\n\n            .line:last-child {\n                border-bottom: 0;\n            }\n\n            .time,\n            .source {\n                color: var(--text-muted);\n                white-space: nowrap;\n            }\n\n            .level {\n                font-weight: 700;\n                white-space: nowrap;\n            }\n\n            .level.DEBUG { color: var(--text-muted); }\n            .level.INFO { color: var(--df-accent, var(--accent)); }\n            .level.WARNING { color: var(--warn); }\n            .level.ERROR, .level.CRITICAL { color: var(--danger); }\n\n            .empty,\n            .error {\n                padding: 12px;\n                color: var(--text-muted);\n            }\n\n            .error {\n                color: var(--danger);\n            }\n\n            /* boxed: the df-card look with the controls in the header line \u2014 a\n               lit header bar over a sunken body well, the same split .df-card\n               uses. Retarget with --df-panel-header-bg / --df-panel-body-bg. */\n            :host([boxed]) {\n                gap: 0;\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                background: var(--df-panel-header-bg, var(--bg-header));\n                overflow: hidden;\n            }\n\n            :host([boxed]) header {\n                padding: 8px 14px;\n                border-bottom: 1px solid var(--border);\n                background: var(--df-panel-header-bg, var(--bg-header));\n            }\n\n            .heading {\n                font-weight: 600;\n                font-size: 0.9rem;\n            }\n\n            :host([boxed]) .wrap {\n                border: 0;\n                border-radius: 0;\n                background: var(--df-panel-body-bg, var(--bg-dim));\n            }\n        `,p],o([Ie()],L.prototype,\"src\",2),o([Ie({type:Number})],L.prototype,\"poll\",2),o([Ie({type:Boolean,reflect:!0})],L.prototype,\"boxed\",2),o([Ie()],L.prototype,\"heading\",2),o([Oe()],L.prototype,\"entries\",2),o([Oe()],L.prototype,\"level\",2),o([Oe()],L.prototype,\"follow\",2),o([Oe()],L.prototype,\"error\",2),L=o([tr(\"druid-log-view\")],L);import{css as rr,html as ar,LitElement as nr}from\"./lit-vendor.js\";import{customElement as ir,property as nt}from\"./lit-vendor.js\";var W=class extends nr{constructor(){super(...arguments);this.value=0;this.max=100;this.indeterminate=!1}render(){let e=this.max>0?Math.min(100,Math.max(0,this.value/this.max*100)):0;return ar`<div\n            class=\"track\"\n            role=\"progressbar\"\n            aria-valuemin=\"0\"\n            aria-valuemax=${this.max}\n            aria-valuenow=${this.indeterminate?\"\":this.value}\n        >\n            <div class=\"fill\" style=${this.indeterminate?\"\":`width: ${e}%`}></div>\n        </div>`}};W.styles=[rr`\n            :host {\n                display: block;\n            }\n\n            .track {\n                height: 6px;\n                border-radius: 999px;\n                background: var(--border);\n                overflow: hidden;\n            }\n\n            .fill {\n                height: 100%;\n                border-radius: 999px;\n                background: var(--df-accent, var(--accent));\n                transition: width 0.2s ease;\n            }\n\n            :host([indeterminate]) .fill {\n                width: 35%;\n                animation: sweep 1.2s ease-in-out infinite;\n            }\n\n            @keyframes sweep {\n                0% {\n                    transform: translateX(-100%);\n                }\n                100% {\n                    transform: translateX(300%);\n                }\n            }\n        `,p],o([nt({type:Number})],W.prototype,\"value\",2),o([nt({type:Number})],W.prototype,\"max\",2),o([nt({type:Boolean,reflect:!0})],W.prototype,\"indeterminate\",2),W=o([ir(\"druid-progress\")],W);import{html as sr,LitElement as lr}from\"./lit-vendor.js\";import{customElement as dr,property as ze}from\"./lit-vendor.js\";var _=class extends lr{constructor(){super(...arguments);this.name=\"\";this.placeholder=\"Search\";this.value=\"\";this.debounce=150}createRenderRoot(){return this}get input(){return this.querySelector(\"input\")}focus(){this.input?.focus()}onInput(e){this.value=e.target.value,window.clearTimeout(this.timer),this.timer=window.setTimeout(()=>{this.dispatchEvent(new CustomEvent(\"search\",{detail:{value:this.value},bubbles:!0}))},this.debounce)}render(){return sr`<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\" /><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\" /></svg><input type=\"search\" name=${this.name} placeholder=${this.placeholder} .value=${this.value} @input=${this.onInput} aria-label=${this.placeholder} />`}};o([ze()],_.prototype,\"name\",2),o([ze()],_.prototype,\"placeholder\",2),o([ze()],_.prototype,\"value\",2),o([ze({type:Number})],_.prototype,\"debounce\",2),_=o([dr(\"druid-search\")],_);import{css as cr,html as it,LitElement as pr}from\"./lit-vendor.js\";import{customElement as hr,property as Vt}from\"./lit-vendor.js\";var jt=[\"flash\",\"fade\",\"wave\",\"pulse\"],ur={flash:\"dots-flash\",fade:\"dots-bbl\",wave:\"dots-wave\",pulse:\"dots-pulse\"},re=class extends pr{constructor(){super(...arguments);this.variant=\"\";this.look=\"smooth\";this.picked=jt[Math.floor(Math.random()*jt.length)]}render(){let e=this.variant||this.picked,t=this.look===\"classic\"?it`<div class=${ur[e]}></div>`:it`<div class=\"smooth ${e}\"><span></span><span></span><span></span></div>`;return it`<div role=\"status\" aria-label=\"waiting\">${t}</div>`}};re.styles=[cr`\n            :host {\n                --on: var(--df-dots-on, var(--df-accent, var(--accent)));\n                --off: var(--df-dots-off, var(--border-strong));\n                display: inline-block;\n                animation: appear 0.24s ease-in-out both;\n            }\n\n            @keyframes appear {\n                from {\n                    opacity: 0;\n                }\n                to {\n                    opacity: 1;\n                }\n            }\n\n            /* ================= classic ================= */\n\n            /* flash \u2014 static dots, the lit one runs left to right and back */\n            .dots-flash {\n                width: 10px;\n                height: 10px;\n                margin: 0 20px;\n                border-radius: 50%;\n                background-color: var(--off);\n                box-shadow:\n                    -20px 0 var(--on),\n                    20px 0 var(--off);\n                position: relative;\n                animation: flash 0.8s linear infinite alternate;\n            }\n\n            @keyframes flash {\n                0% {\n                    background-color: var(--off);\n                    box-shadow:\n                        -20px 0 var(--on),\n                        20px 0 var(--off);\n                }\n                50% {\n                    background-color: var(--on);\n                    box-shadow:\n                        -20px 0 var(--off),\n                        20px 0 var(--off);\n                }\n                100% {\n                    background-color: var(--off);\n                    box-shadow:\n                        -20px 0 var(--off),\n                        20px 0 var(--on);\n                }\n            }\n\n            /* fade (bblFadInOut) \u2014 the dots fade in and out, left to right */\n            .dots-bbl,\n            .dots-bbl:before,\n            .dots-bbl:after {\n                width: 10px;\n                height: 10px;\n                border-radius: 50%;\n                background-color: var(--on);\n                animation-fill-mode: both;\n                animation: bblFadInOut 1.8s infinite ease-in-out;\n            }\n\n            .dots-bbl {\n                margin: 0 20px;\n                position: relative;\n                transform: translateZ(0);\n                animation-delay: -0.16s;\n            }\n\n            .dots-bbl:before,\n            .dots-bbl:after {\n                content: \"\";\n                position: absolute;\n                top: 0;\n            }\n\n            .dots-bbl:before {\n                left: -20px;\n                animation-delay: -0.32s;\n            }\n\n            .dots-bbl:after {\n                left: 20px;\n            }\n\n            @keyframes bblFadInOut {\n                0%,\n                80%,\n                100% {\n                    background-color: transparent;\n                }\n                40% {\n                    background-color: var(--on);\n                }\n            }\n\n            /* wave \u2014 the dots hop left to right; the element sits 20px low and\n               draws its three dots 20px up, so the hop (-25px) has room above */\n            .dots-wave {\n                width: 10px;\n                height: 10px;\n                margin: 0 20px;\n                border-radius: 50%;\n                position: relative;\n                top: 20px;\n                box-shadow:\n                    -20px -20px var(--off),\n                    0 -20px var(--off),\n                    20px -20px var(--off);\n                animation: wave 1.3s ease-in-out infinite;\n            }\n\n            /* 2% & 98%: symmetric pause for the left/right dot; -25px is the height of the jump */\n            @keyframes wave {\n                0%,\n                2%,\n                98%,\n                100% {\n                    box-shadow:\n                        -20px -20px var(--off),\n                        0 -20px var(--off),\n                        20px -20px var(--off);\n                }\n                30% {\n                    box-shadow:\n                        -20px -25px var(--on),\n                        0 -20px var(--off),\n                        20px -20px var(--off);\n                }\n                50% {\n                    box-shadow:\n                        -20px -20px var(--off),\n                        0 -25px var(--on),\n                        20px -20px var(--off);\n                }\n                70% {\n                    box-shadow:\n                        -20px -20px var(--off),\n                        0 -20px var(--off),\n                        20px -25px var(--on);\n                }\n            }\n\n            /* pulse (new, built the classic way) \u2014 box-shadows laid out like wave; a negative\n               spread shrinks a resting dot to 72% (7.2px), the lit one swells to\n               full size, left to right */\n            .dots-pulse {\n                width: 10px;\n                height: 10px;\n                margin: 0 20px;\n                border-radius: 50%;\n                position: relative;\n                top: 20px;\n                box-shadow:\n                    -20px -20px 0 -1.4px var(--off),\n                    0 -20px 0 -1.4px var(--off),\n                    20px -20px 0 -1.4px var(--off);\n                animation: pulse 1.4s ease-in-out infinite;\n            }\n\n            @keyframes pulse {\n                0%,\n                85%,\n                100% {\n                    box-shadow:\n                        -20px -20px 0 -1.4px var(--off),\n                        0 -20px 0 -1.4px var(--off),\n                        20px -20px 0 -1.4px var(--off);\n                }\n                25% {\n                    box-shadow:\n                        -20px -20px 0 0 var(--on),\n                        0 -20px 0 -1.4px var(--off),\n                        20px -20px 0 -1.4px var(--off);\n                }\n                45% {\n                    box-shadow:\n                        -20px -20px 0 -1.4px var(--off),\n                        0 -20px 0 0 var(--on),\n                        20px -20px 0 -1.4px var(--off);\n                }\n                65% {\n                    box-shadow:\n                        -20px -20px 0 -1.4px var(--off),\n                        0 -20px 0 -1.4px var(--off),\n                        20px -20px 0 0 var(--on);\n                }\n            }\n\n            /* ================= smooth ================= */\n\n            .smooth {\n                display: inline-flex;\n                align-items: center;\n                gap: 5px;\n                height: 1em;\n            }\n\n            .smooth span {\n                width: 6px;\n                height: 6px;\n                border-radius: 50%;\n                background: var(--on);\n                /* the animated properties never touch layout or paint */\n                will-change: transform, opacity;\n            }\n\n            /* pulse \u2014 each dot breathes in turn */\n            .smooth.pulse span {\n                animation: s-pulse 1.4s ease-in-out infinite both;\n            }\n\n            @keyframes s-pulse {\n                0%,\n                70%,\n                100% {\n                    opacity: 0.3;\n                    transform: scale(0.72);\n                }\n                35% {\n                    opacity: 1;\n                    transform: scale(1);\n                }\n            }\n\n            /* wave \u2014 a swell travels along the row */\n            .smooth.wave span {\n                animation: s-wave 1.3s ease-in-out infinite both;\n            }\n\n            @keyframes s-wave {\n                0%,\n                60%,\n                100% {\n                    opacity: 0.35;\n                    transform: translateY(0);\n                }\n                30% {\n                    opacity: 1;\n                    transform: translateY(-4px);\n                }\n            }\n\n            /* fade \u2014 the row lights up left to right */\n            .smooth.fade span {\n                animation: s-fade 1.6s ease-in-out infinite both;\n            }\n\n            @keyframes s-fade {\n                0%,\n                65%,\n                100% {\n                    opacity: 0.25;\n                }\n                30% {\n                    opacity: 1;\n                }\n            }\n\n            /* the stagger comes after the variants: the animation shorthand above\n               resets animation-delay, and at equal specificity the later rule wins */\n            .smooth span:nth-child(2) {\n                animation-delay: 0.16s;\n            }\n\n            .smooth span:nth-child(3) {\n                animation-delay: 0.32s;\n            }\n\n            /* flash \u2014 one light runs left to right and back. Not a stagger: each dot\n               has its own keyframes on one shared clock, so the delays are undone */\n            .smooth.flash span {\n                animation: 0.8s ease-in-out infinite alternate both;\n                animation-delay: 0s;\n            }\n\n            .smooth.flash span:nth-child(1) {\n                animation-name: s-flash-1;\n            }\n\n            .smooth.flash span:nth-child(2) {\n                animation-name: s-flash-2;\n                animation-delay: 0s;\n            }\n\n            .smooth.flash span:nth-child(3) {\n                animation-name: s-flash-3;\n                animation-delay: 0s;\n            }\n\n            @keyframes s-flash-1 {\n                0% {\n                    opacity: 1;\n                }\n                50%,\n                100% {\n                    opacity: 0.3;\n                }\n            }\n\n            @keyframes s-flash-2 {\n                0%,\n                100% {\n                    opacity: 0.3;\n                }\n                50% {\n                    opacity: 1;\n                }\n            }\n\n            @keyframes s-flash-3 {\n                0%,\n                50% {\n                    opacity: 0.3;\n                }\n                100% {\n                    opacity: 1;\n                }\n            }\n\n            /* the framework zeroes its motion tokens here, so follow suit: resting dots, no motion */\n            @media (prefers-reduced-motion: reduce) {\n                :host,\n                .dots-flash,\n                .dots-bbl,\n                .dots-bbl:before,\n                .dots-bbl:after,\n                .dots-wave,\n                .dots-pulse,\n                .smooth span {\n                    animation: none !important;\n                }\n\n                .dots-bbl,\n                .dots-bbl:before,\n                .dots-bbl:after {\n                    background-color: var(--off);\n                }\n\n                .smooth span {\n                    opacity: 0.6;\n                }\n            }\n        `,p],o([Vt()],re.prototype,\"variant\",2),o([Vt({reflect:!0})],re.prototype,\"look\",2),re=o([hr(\"druid-dots\")],re);import{css as mr,html as Kt,LitElement as fr,nothing as vr}from\"./lit-vendor.js\";import{customElement as br,property as st,state as Ut}from\"./lit-vendor.js\";var S=class extends fr{constructor(){super(...arguments);this.sender=\"assistant\";this.label=\"\";this.streaming=!1;this.hasActions=!1;this.empty=!0}disconnectedCallback(){super.disconnectedCallback(),this.unwatch()}willUpdate(e){e.has(\"streaming\")&&(this.streaming?(this.checkEmpty(),this.observer=new MutationObserver(()=>this.checkEmpty()),this.observer.observe(this,{childList:!0,subtree:!0,characterData:!0})):this.unwatch())}unwatch(){this.observer?.disconnect(),this.observer=void 0}checkEmpty(){this.empty=![...this.childNodes].some(e=>!(e instanceof Element&&e.slot===\"actions\")&&(e.textContent?.trim()||e instanceof Element&&e.querySelector(\"img, svg, video, canvas\")))}onActionsSlotChange(e){this.hasActions=e.target.assignedElements().length>0}render(){let e=this.label||(this.sender===\"user\"?\"You\":\"Assistant\");return Kt`<div class=\"bubble\">\n            <div class=\"label\">${e}</div>\n            <slot></slot>\n            ${this.streaming?Kt`<druid-dots\n                      class=\"wait\"\n                      look=${this.empty?\"classic\":\"smooth\"}\n                      variant=${this.empty?\"\":\"pulse\"}\n                  ></druid-dots>`:vr}\n            <div class=\"actions\" ?hidden=${!this.hasActions||this.streaming}>\n                <slot name=\"actions\" @slotchange=${this.onActionsSlotChange}></slot>\n            </div>\n        </div>`}};S.styles=[mr`\n            :host {\n                display: flex;\n                margin: 0 0 10px;\n            }\n\n            :host([sender=\"user\"]) {\n                justify-content: flex-end;\n            }\n\n            .bubble {\n                max-width: 80%;\n                padding: 8px 14px 10px;\n                border-radius: var(--radius);\n                background: var(--bg);\n                border: 1px solid var(--border);\n                color: var(--text);\n                overflow-wrap: break-word;\n            }\n\n            :host([sender=\"user\"]) .bubble {\n                background: var(--df-accent-soft, var(--accent-soft));\n                border-color: var(--df-accent-soft, var(--accent-soft));\n            }\n\n            .label {\n                font-size: 0.8rem;\n                font-weight: 600;\n                margin-bottom: 2px;\n                color: var(--text-muted);\n            }\n\n            :host([sender=\"user\"]) .label {\n                color: var(--df-accent, var(--accent));\n            }\n\n            .actions {\n                display: flex;\n                gap: 6px;\n                margin-top: 8px;\n            }\n\n            /* accent-outlined action buttons on the tinted user bubble */\n            :host([sender=\"user\"]) .actions {\n                --df-icon-btn-color: var(--df-accent, var(--accent));\n                --df-icon-btn-border: color-mix(in srgb, var(--df-accent, var(--accent)) 60%, var(--bg));\n                --df-icon-btn-hover-bg: var(--df-accent-soft, var(--accent-soft));\n                --df-icon-btn-hover-color: var(--df-accent, var(--accent));\n            }\n\n            .actions[hidden] {\n                display: none;\n            }\n\n            .wait {\n                display: block;\n                margin-top: 4px;\n            }\n\n            /* the classic look draws its dots 20px above its own box */\n            .wait[look=\"classic\"] {\n                margin: 22px 0 4px;\n            }\n        `,p],o([st({reflect:!0})],S.prototype,\"sender\",2),o([st()],S.prototype,\"label\",2),o([st({type:Boolean,reflect:!0})],S.prototype,\"streaming\",2),o([Ut()],S.prototype,\"hasActions\",2),o([Ut()],S.prototype,\"empty\",2),S=o([br(\"druid-chat-message\")],S);import{css as gr,html as Ee,LitElement as xr}from\"./lit-vendor.js\";import{customElement as yr,property as q,state as wr}from\"./lit-vendor.js\";var g=class extends xr{constructor(){super(...arguments);this.heading=\"\";this.searchable=!1;this.searchPlaceholder=\"Filter\";this.filter=\"\";this.sortable=!1;this.sort=\"\";this.direction=\"asc\";this.emptyText=\"Nothing matches that filter.\";this.boxed=!1;this.emptyVisible=!1}connectedCallback(){super.connectedCallback(),this.observer=new MutationObserver(()=>this.apply()),this.observe()}disconnectedCallback(){super.disconnectedCallback(),this.observer?.disconnect()}firstUpdated(){this.apply()}updated(e){(e.has(\"filter\")||e.has(\"sort\")||e.has(\"direction\")||e.has(\"sortable\"))&&this.apply()}observe(){this.observer?.observe(this,{childList:!0,subtree:!0})}get table(){return this.querySelector(\"table\")}get rows(){return[...this.table?.tBodies[0]?.rows??[]]}headers(){return[...this.table?.tHead?.rows[0]?.cells??[]]}key(e){return e.dataset.key||(e.textContent??\"\").trim()}refresh(){this.apply()}setFilter(e){this.filter=e}onSearch(e){this.filter=e.target.value,this.dispatchEvent(new CustomEvent(\"table-filter\",{detail:{value:this.filter,visible:this.rows.filter(t=>!t.hidden).length},bubbles:!0}))}onHeadClick(e){if(!this.sortable)return;let t=e.target.closest(\"th\");if(!t||t.dataset.sort===\"none\"||!this.headers().includes(t))return;let a=this.key(t);this.direction=this.sort===a&&this.direction===\"asc\"?\"desc\":\"asc\",this.sort=a,this.dispatchEvent(new CustomEvent(\"table-sort\",{detail:{key:a,direction:this.direction},bubbles:!0}))}cellValue(e,t){let a=e.cells[t];return(a?.dataset.value??a?.textContent??\"\").trim()}apply(){let e=this.table;if(!e)return;this.observer?.disconnect();let t=this.headers();for(let l of t){let d=this.sortable&&l.dataset.sort!==\"none\";d&&!l.hasAttribute(\"data-sort\")&&l.setAttribute(\"data-sort\",\"\"),d&&this.key(l)===this.sort?l.setAttribute(\"aria-sort\",this.direction===\"asc\"?\"ascending\":\"descending\"):l.removeAttribute(\"aria-sort\")}let a=t.findIndex(l=>this.key(l)===this.sort&&l.dataset.sort!==\"none\");if(this.sortable&&a!==-1){let l=this.direction===\"desc\"?-1:1,d=this.rows.sort((E,f)=>{let m=this.cellValue(E,a),x=this.cellValue(f,a),C=Number(m),P=Number(x);return(m!==\"\"&&x!==\"\"&&!Number.isNaN(C)&&!Number.isNaN(P)?C-P:m.localeCompare(x,void 0,{numeric:!0,sensitivity:\"base\"}))*l}),h=e.tBodies[0];for(let E of d)h.appendChild(E)}let s=this.filter.trim().toLowerCase(),i=0;for(let l of this.rows){let d=!s||(l.textContent??\"\").toLowerCase().includes(s);l.hidden=!d,d&&i++}this.observer?.takeRecords(),this.observe(),this.emptyVisible=this.rows.length>0&&i===0}render(){let e=this.heading||this.searchable?Ee`<header>\n                      ${this.heading?Ee`<span class=\"heading\">${this.heading}</span>`:\"\"}\n                      <span class=\"spacer\"></span>\n                      ${this.searchable?Ee`<input\n                                type=\"search\"\n                                .value=${this.filter}\n                                placeholder=${this.searchPlaceholder}\n                                aria-label=${this.searchPlaceholder}\n                                @input=${this.onSearch}\n                            />`:\"\"}\n                  </header>`:\"\";return Ee`${e}\n            <div class=\"wrap\" @click=${this.onHeadClick}><slot></slot></div>\n            ${this.emptyVisible?Ee`<div class=\"empty\">${this.emptyText}</div>`:\"\"}`}};g.styles=[gr`\n            :host {\n                display: flex;\n                flex-direction: column;\n                min-height: 0;\n            }\n\n            header {\n                display: flex;\n                align-items: center;\n                gap: 10px;\n                margin-bottom: 8px;\n            }\n\n            .heading {\n                font-weight: 600;\n                font-size: 0.9rem;\n            }\n\n            .spacer {\n                flex: 1;\n            }\n\n            input {\n                width: 180px;\n                max-width: 40vw;\n                padding: 5px 10px;\n                border: 1px solid var(--border);\n                border-radius: var(--radius-sm, 6px);\n                background: var(--df-select-bg, var(--bg-dim));\n                color: var(--text);\n                font: inherit;\n                font-size: 0.85rem;\n                transition:\n                    border-color var(--df-dur, 0.2s) var(--df-ease, ease),\n                    box-shadow var(--df-dur, 0.2s) var(--df-ease, ease);\n            }\n\n            input:focus {\n                outline: none;\n                border-color: var(--df-accent, var(--accent));\n                box-shadow: var(--focus-ring);\n            }\n\n            input::placeholder {\n                color: var(--text-muted);\n            }\n\n            .wrap {\n                flex: 1;\n                min-height: 0;\n                overflow: auto;\n            }\n\n            .empty {\n                padding: 18px;\n                text-align: center;\n                color: var(--text-muted);\n                font-size: 0.85rem;\n            }\n\n            /* boxed: the df-card look \u2014 a lit header bar over the table well */\n            :host([boxed]) {\n                border: 1px solid var(--border);\n                border-radius: var(--radius);\n                background: var(--df-panel-body-bg, var(--bg-dim));\n                overflow: hidden;\n            }\n\n            :host([boxed]) header {\n                margin-bottom: 0;\n                padding: 6px 10px;\n                border-bottom: 1px solid var(--border);\n                background: var(--df-panel-header-bg, var(--bg-header));\n            }\n        `,p],o([q()],g.prototype,\"heading\",2),o([q({type:Boolean})],g.prototype,\"searchable\",2),o([q({attribute:\"search-placeholder\"})],g.prototype,\"searchPlaceholder\",2),o([q()],g.prototype,\"filter\",2),o([q({type:Boolean})],g.prototype,\"sortable\",2),o([q()],g.prototype,\"sort\",2),o([q()],g.prototype,\"direction\",2),o([q({attribute:\"empty-text\"})],g.prototype,\"emptyText\",2),o([q({type:Boolean,reflect:!0})],g.prototype,\"boxed\",2),o([wr()],g.prototype,\"emptyVisible\",2),g=o([yr(\"druid-table\")],g);import{css as kr,html as Wt,LitElement as Er,nothing as Cr}from\"./lit-vendor.js\";import{customElement as Lr,property as lt,query as $r,state as Mr}from\"./lit-vendor.js\";var M=6,F=class extends Er{constructor(){super(...arguments);this.text=\"\";this.placement=\"top\";this.disabled=!1;this.open=!1;this.show=()=>{this.open||!this.text||this.disabled||(this.open=!0,this.updateComplete.then(()=>{let e=this.bubble;if(e){try{e.showPopover()}catch{}this.position()}}))};this.hide=()=>{if(this.open){this.open=!1;try{this.bubble?.hidePopover()}catch{}}};this.onKeydown=e=>{this.open&&e.key===\"Escape\"&&this.hide()}}connectedCallback(){super.connectedCallback(),this.addEventListener(\"mouseenter\",this.show),this.addEventListener(\"mouseleave\",this.hide),this.addEventListener(\"focusin\",this.show),this.addEventListener(\"focusout\",this.hide),this.addEventListener(\"keydown\",this.onKeydown)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(\"mouseenter\",this.show),this.removeEventListener(\"mouseleave\",this.hide),this.removeEventListener(\"focusin\",this.show),this.removeEventListener(\"focusout\",this.hide),this.removeEventListener(\"keydown\",this.onKeydown)}position(){let e=this.bubble;if(!e)return;let t=this.getBoundingClientRect(),a=e.getBoundingClientRect(),s=window.innerWidth,i=window.innerHeight,l=0,d=0;this.placement===\"top\"||this.placement===\"bottom\"?(l=this.placement===\"top\"?t.top-a.height-M:t.bottom+M,this.placement===\"top\"&&l<0?l=t.bottom+M:this.placement===\"bottom\"&&l+a.height>i&&(l=t.top-a.height-M),d=t.left+t.width/2-a.width/2):(d=this.placement===\"left\"?t.left-a.width-M:t.right+M,this.placement===\"left\"&&d<0?d=t.right+M:this.placement===\"right\"&&d+a.width>s&&(d=t.left-a.width-M),l=t.top+t.height/2-a.height/2),d=Math.max(M,Math.min(d,s-a.width-M)),l=Math.max(M,Math.min(l,i-a.height-M)),e.style.left=`${d}px`,e.style.top=`${l}px`}render(){return Wt`\n            <slot></slot>\n            ${this.text&&!this.disabled?Wt`<span class=\"bubble ${this.open?\"open\":\"\"}\" popover=\"manual\" role=\"tooltip\">${this.text}</span>`:Cr}\n        `}};F.styles=[kr`\n            :host {\n                position: relative;\n                display: inline-flex;\n            }\n\n            .bubble {\n                position: fixed;\n                margin: 0;\n                inset: auto;\n                z-index: 70;\n                max-width: 240px;\n                width: max-content;\n                padding: 5px 9px;\n                border-radius: var(--radius);\n                border: 1px solid var(--border);\n                background: var(--bg-raised);\n                color: var(--text);\n                box-shadow: var(--shadow);\n                font-size: 0.78rem;\n                line-height: 1.35;\n                text-align: left;\n                white-space: normal;\n                opacity: 0;\n                transition: opacity 0.12s ease;\n            }\n\n            .bubble.open {\n                opacity: 1;\n            }\n        `,p],o([lt()],F.prototype,\"text\",2),o([lt({reflect:!0})],F.prototype,\"placement\",2),o([lt({type:Boolean})],F.prototype,\"disabled\",2),o([Mr()],F.prototype,\"open\",2),o([$r(\".bubble\")],F.prototype,\"bubble\",2),F=o([Lr(\"druid-tooltip\")],F);import{css as Tr,html as Hr,LitElement as Ar}from\"./lit-vendor.js\";import{customElement as Nr,property as Sr,query as _t,state as Fr}from\"./lit-vendor.js\";var B=class extends Ar{constructor(){super(...arguments);this.placement=\"bottom-start\";this.open=!1;this.onOutsideClick=e=>{this.open&&!e.composedPath().includes(this)&&this.hide()};this.onKeydown=e=>{this.open&&e.key===\"Escape\"&&this.hide()}}connectedCallback(){super.connectedCallback(),document.addEventListener(\"click\",this.onOutsideClick),document.addEventListener(\"keydown\",this.onKeydown)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(\"click\",this.onOutsideClick),document.removeEventListener(\"keydown\",this.onKeydown),this.pin?.release()}show(){this.open||(this.open=!0,this.updateComplete.then(()=>{this.pin=te(this.panel,this.anchor,{placement:this.placement}),this.dispatchEvent(new CustomEvent(\"popover-toggle\",{detail:{open:!0},bubbles:!0}))}))}hide(){this.open&&(this.open=!1,this.pin?.release(),this.pin=void 0,this.dispatchEvent(new CustomEvent(\"popover-toggle\",{detail:{open:!1},bubbles:!0})))}toggle(){this.open?this.hide():this.show()}render(){return Hr`\n            <span class=\"anchor\" @click=${()=>this.toggle()}>\n                <slot name=\"trigger\"></slot>\n            </span>\n            <div class=\"panel ${this.open?\"open\":\"\"}\" popover=\"manual\" role=\"dialog\">\n                <slot></slot>\n            </div>\n        `}};B.styles=[Tr`\n            :host {\n                display: inline-flex;\n                position: relative;\n            }\n\n            .anchor {\n                display: inline-flex;\n            }\n\n            .panel {\n                position: fixed;\n                margin: 0;\n                inset: auto;\n                z-index: 60;\n                min-width: 160px;\n                max-height: min(70vh, 420px);\n                overflow: auto;\n                padding: 6px;\n                background: var(--bg-raised);\n                border: 1px solid var(--df-accent, var(--accent));\n                border-radius: var(--radius);\n                box-shadow: var(--shadow);\n                color: var(--text);\n                opacity: 0;\n                transform: translateY(-4px);\n                transition: opacity 0.12s ease, transform 0.12s ease;\n            }\n\n            .panel:popover-open {\n                opacity: 1;\n                transform: none;\n            }\n\n            /* fallback for engines without :popover-open */\n            .panel.open {\n                opacity: 1;\n                transform: none;\n            }\n        `,p],o([Sr()],B.prototype,\"placement\",2),o([Fr()],B.prototype,\"open\",2),o([_t(\".anchor\")],B.prototype,\"anchor\",2),o([_t(\".panel\")],B.prototype,\"panel\",2),B=o([Nr(\"druid-popover\")],B);function dt(r,n=\"info\",e=3e3){let t=document.querySelector(\".df-toast-stack\");t||(t=document.createElement(\"div\"),t.className=\"df-toast-stack\",document.body.appendChild(t));let a=document.createElement(\"div\");return a.className=`df-toast ${n}`,a.setAttribute(\"role\",\"status\"),a.textContent=r,t.appendChild(a),window.setTimeout(()=>{a.classList.add(\"out\"),a.addEventListener(\"transitionend\",()=>a.remove(),{once:!0}),window.setTimeout(()=>a.remove(),600)},e),a}function ae(r,n){let e=document.createElement(\"druid-button\");return n&&e.setAttribute(\"variant\",n),e.textContent=r,e}function qe(r){let n=document.createElement(\"dialog\");return n.className=\"df-dialog\",r(n),n.addEventListener(\"close\",()=>n.remove(),{once:!0}),document.body.appendChild(n),n.showModal(),n}function ct(r={}){let{title:n,content:e,actions:t=[],dismissable:a=!0}=r,s=qe(i=>{if(n){let l=document.createElement(\"h3\");l.textContent=n,i.append(l)}if(typeof e==\"string\"){let l=document.createElement(\"p\");l.className=\"df-dialog-text\",l.textContent=e,i.append(l)}else e&&i.append(e);if(t.length){let l=document.createElement(\"div\");l.className=\"df-dialog-actions\";for(let d of t){let h=ae(d.label,d.variant);d.danger&&h.classList.add(\"df-danger\"),h.addEventListener(\"click\",()=>{d.onClick?d.onClick(i):d.close!==!1&&i.close()}),l.append(h)}i.append(l)}});return a||s.addEventListener(\"cancel\",i=>i.preventDefault()),s}function pt(r,n={}){let{title:e=\"Confirm\",confirmLabel:t=\"Confirm\",cancelLabel:a=\"Cancel\",danger:s=!1}=n;return new Promise(i=>{let l=!1;qe(h=>{let E=document.createElement(\"h3\");E.textContent=e;let f=document.createElement(\"p\");f.className=\"df-dialog-text\",f.textContent=r;let m=ae(a);m.addEventListener(\"click\",()=>h.close());let x=ae(t,\"primary\");s&&x.classList.add(\"df-danger\"),x.addEventListener(\"click\",()=>{l=!0,h.close()});let C=document.createElement(\"div\");C.className=\"df-dialog-actions\",C.append(m,x),h.append(E,f,C)}).addEventListener(\"close\",()=>i(l),{once:!0})})}function ht(r,n={}){let{title:e=\"Input\",placeholder:t=\"\",value:a=\"\",confirmLabel:s=\"OK\",cancelLabel:i=\"Cancel\"}=n;return new Promise(l=>{let d=null,h=document.createElement(\"input\");qe(f=>{let m=document.createElement(\"h3\");m.textContent=e;let x=document.createElement(\"p\");x.className=\"df-dialog-text\",x.textContent=r,h.type=\"text\",h.className=\"df-dialog-input\",h.placeholder=t,h.value=a;let C=()=>{d=h.value,f.close()};h.addEventListener(\"keydown\",ie=>{ie.key===\"Enter\"&&(ie.preventDefault(),C())});let P=ae(i);P.addEventListener(\"click\",()=>f.close());let ne=ae(s,\"primary\");ne.addEventListener(\"click\",C);let G=document.createElement(\"div\");G.className=\"df-dialog-actions\",G.append(P,ne),f.append(m,x,h,G)}).addEventListener(\"close\",()=>l(d),{once:!0}),requestAnimationFrame(()=>{h.focus(),h.select()})})}function ut(r,n){let{title:e=\"Input\",fields:t,confirmLabel:a=\"OK\",cancelLabel:s=\"Cancel\",danger:i=!1}=n;return new Promise(l=>{let d=null,h=[],E=null;qe(m=>{let x=document.createElement(\"h3\");if(x.textContent=e,m.append(x),r){let c=document.createElement(\"p\");c.className=\"df-dialog-text\",c.textContent=r,m.append(c)}let C=document.createElement(\"div\");C.className=\"df-stack\";for(let c of t){let y=document.createElement(\"div\");y.className=\"df-field\";let b=document.createElement(\"span\");b.className=\"df-label\",b.textContent=c.label??c.name,y.append(b);let T,N=null;if(c.type===\"select\"){let u=document.createElement(\"druid-select\");u.setAttribute(\"name\",c.name),u.setAttribute(\"label\",c.label??c.name),c.placeholder&&u.setAttribute(\"placeholder\",c.placeholder);for(let be of c.options??[]){let Be=document.createElement(\"option\");Be.value=be.value,Be.textContent=be.label,u.append(Be)}c.value!==void 0&&u.setAttribute(\"value\",String(c.value)),y.append(u),T=()=>u.value??\"\"}else if(c.type===\"textarea\"){let u=document.createElement(\"textarea\");c.placeholder&&(u.placeholder=c.placeholder),u.value=c.value===void 0?\"\":String(c.value),y.append(u),N=u,T=()=>u.value}else if(c.type===\"checkbox\"){let u=document.createElement(\"input\");u.type=\"checkbox\",u.checked=c.value===!0,y.classList.add(\"df-field-row\"),y.prepend(u),N=u,T=()=>u.checked}else{let u=document.createElement(\"input\");u.type=c.type??\"text\",c.placeholder&&(u.placeholder=c.placeholder),c.min!==void 0&&(u.min=String(c.min)),c.max!==void 0&&(u.max=String(c.max)),c.step!==void 0&&(u.step=String(c.step)),u.value=c.value===void 0?\"\":String(c.value),u.addEventListener(\"keydown\",be=>{be.key===\"Enter\"&&(be.preventDefault(),P())}),y.append(u),N=u,T=()=>c.type===\"number\"?u.value.trim()===\"\"?null:Number(u.value):u.value}E||(E=y.querySelector(\"input, textarea, druid-select\"));let ve=null;c.hint&&(ve=document.createElement(\"span\"),ve.className=\"df-hint\",ve.textContent=c.hint,y.append(ve)),h.push({field:c,wrap:y,hint:ve,read:T,control:N}),C.append(y)}let P=()=>{let c={};for(let b of h)c[b.field.name]=b.read();let y=!0;for(let b of h){let T=c[b.field.name],N=null;b.field.required&&(T===\"\"||T===null||T===!1||Number.isNaN(T))?N=\"Required.\":b.control&&!b.control.checkValidity()?N=b.control.validationMessage:b.field.validate&&(N=b.field.validate(T,c)??null),Rr(b,N),N&&(y=!1)}y&&(d=c,m.close())},ne=ae(s);ne.addEventListener(\"click\",()=>m.close());let G=ae(a,\"primary\");i&&G.classList.add(\"df-danger\"),G.addEventListener(\"click\",P);let ie=document.createElement(\"div\");ie.className=\"df-dialog-actions\",ie.append(ne,G),m.append(C,ie)}).addEventListener(\"close\",()=>l(d),{once:!0}),requestAnimationFrame(()=>E?.focus())})}function Rr(r,n){if(r.wrap.classList.toggle(\"invalid\",!!n),!n&&!r.field.hint){r.hint?.remove(),r.hint=null;return}r.hint||(r.hint=document.createElement(\"span\"),r.hint.className=\"df-hint\",r.wrap.append(r.hint)),r.hint.textContent=n??r.field.hint??\"\"}window.druids={toast:dt,confirm:pt,prompt:ht,form:ut,modal:ct,registerIcon:Qe,registerIcons:Ze,applyAccent:pe,startRainbow:ce,stopRainbow:ye,ACCENTS:H,applyFlavor:he,clearFlavor:He,FLAVORS:Te,applyTheme:Q,currentTheme:we,resolvedTheme:X,THEMES:R,anchor:te};export{H as ACCENTS,Te as FLAVORS,Y as LEAF_PATH,R as THEMES,te as anchor,pe as applyAccent,he as applyFlavor,Q as applyTheme,He as clearFlavor,pt as confirm,we as currentTheme,ut as form,Je as getIcon,Pe as leafSvg,ct as modal,ht as prompt,Qe as registerIcon,Ze as registerIcons,X as resolvedTheme,ce as startRainbow,ye as stopRainbow,dt as toast};\n".split("./lit-vendor.js").join(v)],{type:"text/javascript"})));
+const root=document.documentElement, sw=document.getElementById("ghswitch");
+let on=true; try { on = localStorage.getItem("ghpreview-gh") !== "0"; } catch {}
+const set=(x)=>{ on=x; root.classList.toggle("gh",x); sw.active=x; try{localStorage.setItem("ghpreview-gh",x?"1":"0")}catch{} };
+set(on);
+sw.addEventListener("toggle-change", e => set(e.detail.active));
+window.__ready=true;
+</script></body></html>
